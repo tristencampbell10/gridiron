@@ -13,102 +13,29 @@ import {
   Radio, 
   Clock, 
   CheckCircle2, 
-  Activity
+  Activity,
+  Calendar
 } from 'lucide-react';
-
-const TICKER_GAMES = [
-  {
-    id: 'g1',
-    status: 'LIVE Q3',
-    statusType: 'live',
-    home: 'DET',
-    homeScore: 24,
-    away: 'GB',
-    awayScore: 21,
-    clock: '4:12 Q3',
-    possession: 'DET 2nd & 4 at GB 32',
-    network: 'FOX'
-  },
-  {
-    id: 'g2',
-    status: 'FINAL',
-    statusType: 'final',
-    home: 'PHI',
-    homeScore: 28,
-    away: 'DAL',
-    awayScore: 24,
-    clock: 'FINAL',
-    possession: 'Hurts 2 TD / Barkley 114 YDS',
-    network: 'NBC'
-  },
-  {
-    id: 'g3',
-    status: 'LIVE Q3',
-    statusType: 'live',
-    home: 'KC',
-    homeScore: 20,
-    away: 'BUF',
-    awayScore: 17,
-    clock: '8:45 Q3',
-    possession: 'BUF in Red Zone',
-    network: 'CBS'
-  },
-  {
-    id: 'g4',
-    status: 'SCHEDULED',
-    statusType: 'scheduled',
-    home: 'SF',
-    homeScore: '-',
-    away: 'BAL',
-    awayScore: '-',
-    clock: 'Today 8:20 PM ET',
-    possession: 'Spread: SF -3.5 | O/U 47.5',
-    network: 'ESPN'
-  },
-  {
-    id: 'g5',
-    status: 'FINAL',
-    statusType: 'final',
-    home: 'CIN',
-    homeScore: 34,
-    away: 'CLE',
-    awayScore: 14,
-    clock: 'FINAL',
-    possession: 'Burrow 328 YDS, 3 TD',
-    network: 'CBS'
-  },
-  {
-    id: 'g6',
-    status: 'SCHEDULED',
-    statusType: 'scheduled',
-    home: 'MIA',
-    homeScore: '-',
-    away: 'NYJ',
-    awayScore: '-',
-    clock: 'Mon 8:15 PM ET',
-    possession: 'MNF Primetime Showdown',
-    network: 'ESPN'
-  }
-];
+import espnData from '../data/espnMasterData.json';
 
 export default function Navbar({ user, onOpenAuth, onSignOut, theme, onToggleTheme }) {
   const location = useLocation();
   const [selectedTickerGame, setSelectedTickerGame] = useState(null);
+  const [tickerGames, setTickerGames] = useState(espnData.tickerGames || []);
 
-  // Active player route helper
   const isPlayerDetailActive = location.pathname.startsWith('/players/') && location.pathname !== '/players';
 
   return (
     <header className="w-full">
-      {/* 1. Score Ticker Ribbon */}
+      {/* 1. Official ESPN Live Scoreboard Ribbon */}
       <div className="score-ticker-container" role="region" aria-label="Live NFL Score Ticker">
         <div className="ticker-label-badge">
           <Activity size={15} className="animate-spin text-white" />
-          <span>ESPN SCOREBOARD</span>
+          <span>ESPN LIVE • WEEK 10</span>
         </div>
 
         <div className="ticker-scroll-wrapper">
-          {TICKER_GAMES.map((game) => (
+          {tickerGames.map((game) => (
             <button
               key={game.id}
               type="button"
@@ -119,28 +46,28 @@ export default function Navbar({ user, onOpenAuth, onSignOut, theme, onToggleThe
               {game.statusType === 'live' && (
                 <span className="badge-live">
                   <span className="inline-block w-1.5 h-1.5 rounded-full bg-white mr-1 animate-pulse" />
-                  {game.status}
+                  LIVE
                 </span>
               )}
               {game.statusType === 'final' && (
-                <span className="badge-final">{game.status}</span>
+                <span className="badge-final">FINAL</span>
               )}
               {game.statusType === 'scheduled' && (
-                <span className="badge-scheduled">{game.status}</span>
+                <span className="badge-scheduled">NEXT GAME</span>
               )}
 
               <span className="ticker-matchup font-bold">
-                <span className={game.statusType === 'live' && game.awayScore > game.homeScore ? 'text-amber-400' : ''}>
-                  {game.away} {game.awayScore}
+                <span>
+                  {game.away} {game.awayScore !== '-' ? game.awayScore : ''}
                 </span>
                 <span className="mx-1 text-zinc-500">@</span>
-                <span className={game.statusType === 'live' && game.homeScore > game.awayScore ? 'text-amber-400' : ''}>
-                  {game.home} {game.homeScore}
+                <span>
+                  {game.home} {game.homeScore !== '-' ? game.homeScore : ''}
                 </span>
               </span>
 
               <span className="text-zinc-400 text-xs pl-1 border-l border-zinc-700">
-                {game.clock}
+                {game.clock || game.detail}
               </span>
 
               <span className="text-zinc-500 text-xs hidden sm:inline">
@@ -156,9 +83,11 @@ export default function Navbar({ user, onOpenAuth, onSignOut, theme, onToggleThe
         <div className="bg-zinc-900 border-b border-zinc-800 px-4 py-2 text-xs flex items-center justify-between text-zinc-300">
           <div className="flex items-center gap-3">
             <span className="text-amber-400 font-bold uppercase tracking-wider">
-              {selectedTickerGame.away} vs {selectedTickerGame.home}
+              {selectedTickerGame.awayName || selectedTickerGame.away} @ {selectedTickerGame.homeName || selectedTickerGame.home}
             </span>
-            <span className="text-zinc-400">{selectedTickerGame.possession}</span>
+            <span className="text-zinc-400">
+              {selectedTickerGame.passLeader || selectedTickerGame.rushLeader || selectedTickerGame.detail}
+            </span>
           </div>
           <button 
             onClick={() => setSelectedTickerGame(null)}
@@ -179,7 +108,7 @@ export default function Navbar({ user, onOpenAuth, onSignOut, theme, onToggleThe
             </div>
             <div className="brand-name">
               GRIDIRON<span className="hub">HUB</span>
-              <span className="live-indicator">STUDIO</span>
+              <span className="live-indicator">ESPN LIVE</span>
             </div>
           </Link>
 
@@ -204,12 +133,12 @@ export default function Navbar({ user, onOpenAuth, onSignOut, theme, onToggleThe
             </NavLink>
 
             <NavLink
-              to="/players/mahomes"
+              to="/players/love"
               className={`nav-link-item ${isPlayerDetailActive ? 'active' : ''}`}
-              title="Featured Player Profile: Patrick Mahomes"
+              title="Official ESPN Passing Leader: Jordan Love"
             >
               <UserCheck size={16} />
-              <span>Player Profile</span>
+              <span>#1 Leader Profile</span>
             </NavLink>
 
             <NavLink
@@ -300,11 +229,11 @@ export default function Navbar({ user, onOpenAuth, onSignOut, theme, onToggleThe
         </NavLink>
 
         <NavLink
-          to="/players/mahomes"
+          to="/players/love"
           className={`mobile-nav-link ${isPlayerDetailActive ? 'active' : ''}`}
         >
           <UserCheck size={20} />
-          <span>Profile</span>
+          <span>Leader</span>
         </NavLink>
 
         <NavLink

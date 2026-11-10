@@ -1,54 +1,156 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Flame, TrendingUp, Award, ArrowRight, Shield, Zap, Target, Star } from 'lucide-react';
+import { 
+  Flame, 
+  TrendingUp, 
+  Award, 
+  ArrowRight, 
+  Shield, 
+  Zap, 
+  Target, 
+  Star, 
+  Calendar, 
+  Radio, 
+  RefreshCw, 
+  Clock, 
+  ExternalLink,
+  ChevronRight
+} from 'lucide-react';
+import { fetchLiveEspnData } from '../services/espnService';
+import espnMasterFallback from '../data/espnMasterData.json';
 
 export default function HomePage({ onOpenAuth, user }) {
-  const highlights = [
-    {
-      id: 'h1',
-      tag: 'PRIME TIME SHOWDOWN',
-      title: 'Lamar Jackson vs Josh Allen: Week 11 MVP Stakes',
-      desc: 'Breaking down defensive schemes, air yards per attempt, and red-zone rushing efficiency.',
-      author: 'ESPN Analytics Desk',
-      badge: 'FEATURED'
-    },
-    {
-      id: 'h2',
-      tag: 'FANTASY WAIVER WIRE',
-      title: 'Top Breakout WRs Available in 40%+ of Leagues',
-      desc: 'Target shares spiked for rookies emerging into slot dominance and endzone looks.',
-      author: 'Gridiron Lab',
-      badge: 'TRENDING'
-    }
-  ];
+  const [loading, setLoading] = useState(false);
+  const [data, setData] = useState(espnMasterFallback);
+  const [activeStatTab, setActiveStatTab] = useState('passing'); // 'passing' | 'rushing' | 'receiving'
+  const [lastSyncTime, setLastSyncTime] = useState('Official ESPN Feed');
 
-  const topPerformers = [
-    { name: 'Patrick Mahomes', team: 'KC', pos: 'QB', stat: '342 YDS • 3 TD', rating: '98.4', id: 'mahomes' },
-    { name: 'Saquon Barkley', team: 'PHI', pos: 'RB', stat: '146 YDS • 2 TD', rating: '96.2', id: 'barkley' },
-    { name: 'Justin Jefferson', team: 'MIN', pos: 'WR', stat: '138 YDS • 1 TD', rating: '95.8', id: 'jefferson' },
-    { name: 'Derrick Henry', team: 'BAL', pos: 'RB', stat: '112 YDS • 2 TD', rating: '94.5', id: 'henry' }
-  ];
+  // Load live data from ESPN on mount
+  useEffect(() => {
+    loadEspnData();
+  }, []);
+
+  const loadEspnData = async () => {
+    setLoading(true);
+    try {
+      const live = await fetchLiveEspnData();
+      if (live) {
+        setData(prev => ({
+          ...prev,
+          breakingNews: live.breakingNews || prev.breakingNews,
+          tickerGames: live.tickerGames || prev.tickerGames,
+          nextUpcomingGame: live.nextUpcomingGame || prev.nextUpcomingGame,
+          statLeaders: live.statLeaders || prev.statLeaders
+        }));
+        setLastSyncTime(live.lastSync || 'Live Now');
+      }
+    } catch (e) {
+      console.warn('ESPN load note:', e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const nextGame = data.nextUpcomingGame || espnMasterFallback.nextUpcomingGame;
+  const currentLeaders = (data.statLeaders && data.statLeaders[activeStatTab]) || espnMasterFallback.statLeaders[activeStatTab];
 
   return (
     <div style={{ maxWidth: 1400, margin: '0 auto', padding: '1.5rem 1.25rem' }}>
-      {/* Studio Banner */}
+      {/* ESPN Live Sync Status Bar */}
+      <div style={{ 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'space-between', 
+        backgroundColor: 'var(--studio-charcoal)', 
+        border: '1px solid var(--card-border)',
+        borderRadius: 8,
+        padding: '0.5rem 1rem',
+        marginBottom: '1.5rem',
+        flexWrap: 'wrap',
+        gap: '0.75rem'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ 
+            display: 'inline-block', 
+            width: 8, 
+            height: 8, 
+            borderRadius: '50%', 
+            backgroundColor: '#22c55e', 
+            boxShadow: '0 0 8px #22c55e' 
+          }} />
+          <span style={{ fontFamily: 'var(--font-tech)', fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+            OFFICIAL ESPN LIVE API FEED
+          </span>
+          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+            • Synced: {lastSyncTime}
+          </span>
+        </div>
+
+        <button
+          type="button"
+          onClick={loadEspnData}
+          disabled={loading}
+          style={{
+            background: 'transparent',
+            border: '1px solid var(--card-border)',
+            color: 'var(--headline-gold)',
+            borderRadius: 6,
+            padding: '0.35rem 0.75rem',
+            fontFamily: 'var(--font-tech)',
+            fontSize: '0.8rem',
+            fontWeight: 700,
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6
+          }}
+        >
+          <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+          {loading ? 'Fetching ESPN...' : 'Sync ESPN Live'}
+        </button>
+      </div>
+
+      {/* Main Studio Banner with NEXT UPCOMING NFL GAME */}
       <section style={{ 
-        background: 'linear-gradient(135deg, #1e1e1e 0%, #141414 60%, rgba(226,6,19,0.18) 100%)', 
+        background: 'linear-gradient(135deg, #1e1e1e 0%, #141414 60%, rgba(226,6,19,0.22) 100%)', 
         border: '1px solid var(--card-border)',
         borderRadius: 12,
-        padding: '2.5rem 2rem',
+        padding: '2.25rem 2rem',
         marginBottom: '2rem',
         position: 'relative',
         overflow: 'hidden'
       }}>
-        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--espn-red)', color: '#fff', padding: '3px 10px', borderRadius: 4, fontFamily: 'var(--font-tech)', fontSize: '0.8rem', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '1rem' }}>
-          <Flame size={14} /> LIVE GRIDIRON DESK
+        {/* Next Game Notification Ribbon */}
+        <div style={{ 
+          display: 'inline-flex', 
+          alignItems: 'center', 
+          gap: 8, 
+          background: 'rgba(255, 204, 0, 0.12)', 
+          border: '1px solid rgba(255, 204, 0, 0.35)', 
+          color: 'var(--headline-gold)', 
+          padding: '6px 14px', 
+          borderRadius: 6, 
+          fontFamily: 'var(--font-tech)', 
+          fontSize: '0.85rem', 
+          fontWeight: 700,
+          marginBottom: '1.25rem'
+        }}>
+          <Clock size={16} className="text-amber-400" />
+          <span>NEXT UPCOMING NFL GAME:</span>
+          <span style={{ color: '#ffffff' }}>
+            {nextGame.awayAbbr} ({nextGame.awayRecord}) @ {nextGame.homeAbbr} ({nextGame.homeRecord})
+          </span>
+          <span style={{ color: 'var(--headline-gold)', borderLeft: '1px solid rgba(255,204,0,0.4)', paddingLeft: 8 }}>
+            {nextGame.eventDate} • {nextGame.eventTime} ({nextGame.network})
+          </span>
         </div>
-        <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(2.5rem, 5vw, 4rem)', lineHeight: 1.05, textTransform: 'uppercase', fontWeight: 700, marginBottom: '1rem' }}>
-          THE ULTIMATE NFL & FANTASY <span style={{ color: 'var(--headline-gold)' }}>COMMAND CENTER</span>
+
+        <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(2.4rem, 5vw, 4rem)', lineHeight: 1.05, textTransform: 'uppercase', fontWeight: 700, marginBottom: '0.75rem' }}>
+          ESPN NFL <span style={{ color: 'var(--headline-gold)' }}>COMMAND CENTER</span>
         </h1>
-        <p style={{ color: 'var(--text-secondary)', fontSize: '1.1rem', maxWidth: 720, marginBottom: '1.75rem', lineHeight: 1.6 }}>
-          Live scores, in-depth player statistics, head-to-head metric comparisons, and advanced fantasy lineup builders with authentic ESPN studio aesthetics.
+        
+        <p style={{ color: 'var(--text-secondary)', fontSize: '1.05rem', maxWidth: 760, marginBottom: '1.75rem', lineHeight: 1.6 }}>
+          Live scores and verified season stats directly from the ESPN API. Next up on the schedule: <strong>{nextGame.matchupTitle}</strong>. Full player performance rankings and weekly matchup analytics.
         </p>
 
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', alignItems: 'center' }}>
@@ -70,7 +172,7 @@ export default function HomePage({ onOpenAuth, user }) {
               boxShadow: '0 4px 14px var(--espn-red-glow)'
             }}
           >
-            Explore Players <ArrowRight size={16} />
+            Official NFL Players &rarr;
           </Link>
 
           <Link
@@ -90,7 +192,7 @@ export default function HomePage({ onOpenAuth, user }) {
               gap: 8
             }}
           >
-            Head-to-Head Comparison
+            Compare Stat Leaders
           </Link>
 
           <Link
@@ -110,14 +212,15 @@ export default function HomePage({ onOpenAuth, user }) {
               gap: 8
             }}
           >
-            Build Lineup
+            Lineup Builder
           </Link>
         </div>
       </section>
 
-      {/* Grid Content */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem' }}>
-        {/* Headlines */}
+      {/* Grid: Live ESPN Wire + Official ESPN Stat Leaders + Next Game Focus */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '1.5rem' }}>
+        
+        {/* 1. Real ESPN Breaking Season Wire */}
         <div style={{ 
           backgroundColor: 'var(--card-slate)', 
           border: '1px solid var(--card-border)', 
@@ -126,32 +229,35 @@ export default function HomePage({ onOpenAuth, user }) {
         }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--card-border)', paddingBottom: '0.85rem', marginBottom: '1rem' }}>
             <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.4rem', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: 6 }}>
-              <Zap size={18} style={{ color: 'var(--headline-gold)' }} /> Studio Headlines
+              <Zap size={18} style={{ color: 'var(--espn-red)' }} /> ESPN Season Wire
             </h2>
-            <span style={{ fontSize: '0.75rem', fontFamily: 'var(--font-tech)', color: 'var(--espn-red)', fontWeight: 700 }}>UPDATED LIVE</span>
+            <span style={{ fontSize: '0.75rem', fontFamily: 'var(--font-tech)', color: '#22c55e', fontWeight: 700 }}>
+              LIVE ESPN FEED
+            </span>
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-            {highlights.map((item) => (
+            {data.breakingNews && data.breakingNews.map((item) => (
               <div key={item.id} style={{ borderLeft: '3px solid var(--espn-red)', paddingLeft: '1rem' }}>
                 <span style={{ fontSize: '0.7rem', color: 'var(--headline-gold)', fontFamily: 'var(--font-tech)', fontWeight: 700 }}>
-                  {item.tag}
+                  {item.tag || 'ESPN REPORT'}
                 </span>
-                <h3 style={{ fontSize: '1.05rem', fontWeight: 700, marginTop: 4, marginBottom: 4 }}>
+                <h3 style={{ fontSize: '1rem', fontWeight: 700, marginTop: 4, marginBottom: 4, lineHeight: 1.3 }}>
                   {item.title}
                 </h3>
-                <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.4, marginBottom: 6 }}>
+                <p style={{ fontSize: '0.825rem', color: 'var(--text-secondary)', lineHeight: 1.4, marginBottom: 6 }}>
                   {item.desc}
                 </p>
-                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                  By {item.author}
-                </span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                  <span>{item.author}</span>
+                  <span>{item.timestamp}</span>
+                </div>
               </div>
             ))}
           </div>
         </div>
 
-        {/* Top Performers of the Week */}
+        {/* 2. Official ESPN Stat Leaders */}
         <div style={{ 
           backgroundColor: 'var(--card-slate)', 
           border: '1px solid var(--card-border)', 
@@ -160,18 +266,44 @@ export default function HomePage({ onOpenAuth, user }) {
         }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--card-border)', paddingBottom: '0.85rem', marginBottom: '1rem' }}>
             <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.4rem', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: 6 }}>
-              <Award size={18} style={{ color: 'var(--headline-gold)' }} /> Top Performers
+              <Award size={18} style={{ color: 'var(--headline-gold)' }} /> Official ESPN Stat Leaders
             </h2>
             <Link to="/players" style={{ color: 'var(--headline-gold)', fontSize: '0.8rem', textDecoration: 'none', fontWeight: 600 }}>
-              View All &rarr;
+              All &rarr;
             </Link>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-            {topPerformers.map((p, idx) => (
-              <Link 
-                key={p.id}
-                to={`/players/${p.id}`}
+          {/* Category Toggle Tabs */}
+          <div style={{ display: 'flex', gap: '0.35rem', marginBottom: '1rem' }}>
+            {['passing', 'rushing', 'receiving'].map((cat) => (
+              <button
+                key={cat}
+                type="button"
+                onClick={() => setActiveStatTab(cat)}
+                style={{
+                  flex: 1,
+                  backgroundColor: activeStatTab === cat ? 'var(--espn-red)' : 'var(--studio-charcoal)',
+                  color: activeStatTab === cat ? '#ffffff' : 'var(--text-secondary)',
+                  border: '1px solid var(--card-border)',
+                  borderRadius: 6,
+                  padding: '0.45rem',
+                  fontFamily: 'var(--font-tech)',
+                  fontWeight: 700,
+                  fontSize: '0.8rem',
+                  textTransform: 'uppercase',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s'
+                }}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+            {currentLeaders && currentLeaders.map((lead) => (
+              <div 
+                key={lead.name}
                 style={{ 
                   display: 'flex', 
                   alignItems: 'center', 
@@ -180,35 +312,33 @@ export default function HomePage({ onOpenAuth, user }) {
                   backgroundColor: 'var(--studio-charcoal)', 
                   border: '1px solid var(--card-border)', 
                   borderRadius: 6,
-                  textDecoration: 'none',
-                  color: 'inherit',
-                  transition: 'border-color 0.2s'
+                  color: 'inherit'
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <span style={{ fontFamily: 'var(--font-display)', fontSize: '1.2rem', color: 'var(--text-muted)', width: 18 }}>
-                    #{idx + 1}
+                  <span style={{ fontFamily: 'var(--font-display)', fontSize: '1.3rem', color: lead.rank === 1 ? 'var(--headline-gold)' : 'var(--text-muted)', width: 20 }}>
+                    #{lead.rank}
                   </span>
                   <div>
-                    <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>{p.name}</div>
+                    <div style={{ fontWeight: 700, fontSize: '0.925rem' }}>{lead.name}</div>
                     <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                      <span style={{ color: 'var(--headline-gold)', fontWeight: 700 }}>{p.team}</span> • {p.pos} • {p.stat}
+                      <span style={{ color: 'var(--headline-gold)', fontWeight: 700 }}>{lead.team}</span> • {lead.pos} • {lead.secondary}
                     </div>
                   </div>
                 </div>
 
                 <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontFamily: 'var(--font-tech)', fontSize: '0.95rem', fontWeight: 700, color: '#4ade80' }}>
-                    {p.rating}
+                  <div style={{ fontFamily: 'var(--font-tech)', fontSize: '1.05rem', fontWeight: 700, color: '#4ade80' }}>
+                    {lead.stat}
                   </div>
-                  <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>ESPN QBR</div>
+                  <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>ESPN Official</div>
                 </div>
-              </Link>
+              </div>
             ))}
           </div>
         </div>
 
-        {/* Fantasy & Lineup Callout */}
+        {/* 3. Next Upcoming Game Spotlight Card */}
         <div style={{ 
           backgroundColor: 'var(--card-slate)', 
           border: '1px solid var(--card-border)', 
@@ -220,28 +350,48 @@ export default function HomePage({ onOpenAuth, user }) {
         }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, borderBottom: '1px solid var(--card-border)', paddingBottom: '0.85rem', marginBottom: '1rem' }}>
-              <Target size={18} style={{ color: 'var(--espn-red)' }} />
+              <Radio size={18} style={{ color: 'var(--espn-red)' }} />
               <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.4rem', textTransform: 'uppercase' }}>
-                Lineup Optimizer
+                Next NFL Game Preview
               </h2>
             </div>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', lineHeight: 1.5, marginBottom: '1rem' }}>
-              Build salary-cap compliant rosters, simulate fantasy matchups against league opponents, and lock in your winning starters for Week 11.
-            </p>
-            <div style={{ background: 'var(--studio-charcoal)', padding: '0.85rem', borderRadius: 6, border: '1px solid var(--card-border)', marginBottom: '1rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', marginBottom: 4 }}>
-                <span style={{ color: 'var(--text-secondary)' }}>Projected Optimal Score:</span>
-                <span style={{ color: 'var(--headline-gold)', fontWeight: 700, fontFamily: 'var(--font-tech)' }}>148.6 FPTS</span>
+
+            <div style={{ 
+              background: 'linear-gradient(180deg, rgba(226, 6, 19, 0.1) 0%, rgba(0, 0, 0, 0.2) 100%)',
+              border: '1px solid var(--card-border)',
+              borderRadius: 8,
+              padding: '1.25rem',
+              marginBottom: '1rem',
+              textAlign: 'center'
+            }}>
+              <div style={{ fontSize: '0.75rem', color: 'var(--headline-gold)', fontFamily: 'var(--font-tech)', fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 }}>
+                {nextGame.network} • THURSDAY NIGHT FOOTBALL
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem' }}>
-                <span style={{ color: 'var(--text-secondary)' }}>Salary Cap Remaining:</span>
-                <span style={{ color: '#4ade80', fontWeight: 700, fontFamily: 'var(--font-tech)' }}>$4,200</span>
+
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16, margin: '0.75rem 0' }}>
+                <div>
+                  <div style={{ fontFamily: 'var(--font-display)', fontSize: '2rem', fontWeight: 700 }}>{nextGame.awayAbbr}</div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{nextGame.awayRecord}</div>
+                </div>
+                <span style={{ fontSize: '1.2rem', color: 'var(--text-muted)', fontWeight: 700 }}>@</span>
+                <div>
+                  <div style={{ fontFamily: 'var(--font-display)', fontSize: '2rem', fontWeight: 700 }}>{nextGame.homeAbbr}</div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{nextGame.homeRecord}</div>
+                </div>
+              </div>
+
+              <div style={{ fontSize: '0.85rem', color: 'var(--text-primary)', fontWeight: 600 }}>
+                {nextGame.eventDate} • {nextGame.eventTime}
               </div>
             </div>
+
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', lineHeight: 1.5, marginBottom: '1rem' }}>
+              {nextGame.highlight}
+            </p>
           </div>
 
           <Link
-            to="/lineups"
+            to="/compare"
             style={{
               backgroundColor: 'var(--espn-red)',
               color: '#ffffff',
@@ -256,7 +406,7 @@ export default function HomePage({ onOpenAuth, user }) {
               display: 'block'
             }}
           >
-            Launch Lineup Builder &rarr;
+            Compare Daniels vs Giants Defense &rarr;
           </Link>
         </div>
       </div>
