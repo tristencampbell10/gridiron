@@ -97,7 +97,7 @@ export default function PlayersPage() {
               onClick={() => setSelectedPos(pos)}
               style={{
                 backgroundColor: selectedPos === pos ? 'var(--espn-red)' : 'var(--studio-charcoal)',
-                color: selectedPos === pos ? '#fff' : 'var(--text-secondary)',
+                color: selectedPos === pos ? '#0a0f1d' : 'var(--text-secondary)',
                 border: '1px solid var(--card-border)',
                 borderRadius: 6,
                 padding: '0.45rem 0.85rem',

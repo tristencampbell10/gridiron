@@ -1,26 +1,26 @@
 :root {
-  /* ESPN Studio Theme Variables */
-  --espn-red: #e20613;
-  --espn-red-hover: #c00410;
-  --espn-red-glow: rgba(226, 6, 19, 0.35);
-  --studio-charcoal: #121212;
-  --studio-darker: #0a0a0a;
-  --headline-gold: #ffcc00;
-  --headline-gold-soft: #ffe066;
-  --card-slate: #1e1e1e;
-  --card-slate-elevated: #262626;
-  --card-border: #2a2a2a;
-  --card-border-highlight: #3d3d3d;
+  /* Pro Ice Blue & Midnight Navy Theme */
+  --espn-red: #38bdf8;
+  --espn-red-hover: #0ea5e9;
+  --espn-red-glow: rgba(56, 189, 248, 0.3);
+  --studio-charcoal: #111827;
+  --studio-darker: #0a0f1d;
+  --headline-gold: #38bdf8;
+  --headline-gold-soft: #7dd3fc;
+  --card-slate: #111827;
+  --card-slate-elevated: #172033;
+  --card-border: rgba(148, 163, 184, 0.28);
+  --card-border-highlight: #cbd5e1;
 
   /* Typography & neutrals (Dark default) */
-  --bg-primary: #121212;
-  --bg-secondary: #1a1a1a;
-  --bg-tertiary: #222222;
+  --bg-primary: #0a0f1d;
+  --bg-secondary: #111827;
+  --bg-tertiary: #1e293b;
   --text-primary: #f5f5f7;
-  --text-secondary: #a1a1aa;
-  --text-muted: #71717a;
-  --text-highlight: #ffcc00;
-  --border-subtle: #27272a;
+  --text-secondary: #94a3b8;
+  --text-muted: #cbd5e1;
+  --text-highlight: #38bdf8;
+  --border-subtle: rgba(148, 163, 184, 0.2);
 
   /* Status Colors */
   --live-green: #22c55e;
@@ -29,7 +29,7 @@
   --status-scheduled: #38bdf8;
 
   /* Focus ring */
-  --focus-ring-color: #ffcc00;
+  --focus-ring-color: #38bdf8;
   --focus-ring-width: 3px;
 
   /* Fonts */
@@ -45,23 +45,23 @@
 
 /* Light Theme Variables */
 [data-theme='light'] {
-  --bg-primary: #f4f5f7;
-  --bg-secondary: #ffffff;
-  --bg-tertiary: #e5e7eb;
-  --studio-charcoal: #ffffff;
-  --studio-darker: #f0f2f5;
-  --card-slate: #ffffff;
-  --card-slate-elevated: #fbfbfb;
-  --card-border: #e2e8f0;
+  --bg-primary: #0a0f1d;
+  --bg-secondary: #111827;
+  --bg-tertiary: #1e293b;
+  --studio-charcoal: #111827;
+  --studio-darker: #0a0f1d;
+  --card-slate: #111827;
+  --card-slate-elevated: #172033;
+  --card-border: rgba(148, 163, 184, 0.28);
   --card-border-highlight: #cbd5e1;
 
-  --text-primary: #0f172a;
-  --text-secondary: #475569;
-  --text-muted: #94a3b8;
-  --text-highlight: #b45309;
-  --border-subtle: #e2e8f0;
+  --text-primary: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --text-muted: #cbd5e1;
+  --text-highlight: #38bdf8;
+  --border-subtle: rgba(148, 163, 184, 0.2);
 
-  --focus-ring-color: #e20613;
+  --focus-ring-color: #38bdf8;
 }
 
 /* Base Styles */
@@ -123,7 +123,7 @@ select:focus-visible {
 
 .ticker-label-badge {
   background: var(--espn-red);
-  color: #ffffff;
+  color: #0a0f1d;
   font-family: var(--font-display);
   font-weight: 700;
   font-size: 0.95rem;
@@ -245,12 +245,12 @@ select:focus-visible {
 .brand-icon-wrap {
   width: 36px;
   height: 36px;
-  background: linear-gradient(135deg, var(--espn-red) 0%, #85030b 100%);
+  background: linear-gradient(135deg, var(--espn-red) 0%, #0ea5e9 100%);
   border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #ffffff;
+  color: #0a0f1d;
   box-shadow: 0 0 12px var(--espn-red-glow);
 }
 
@@ -313,13 +313,13 @@ select:focus-visible {
 }
 
 .nav-link-item.active {
-  color: #ffffff;
+  color: #0a0f1d;
   background-color: var(--espn-red);
   box-shadow: 0 0 10px var(--espn-red-glow);
 }
 
 [data-theme='light'] .nav-link-item.active {
-  color: #ffffff;
+  color: #0a0f1d;
 }
 
 /* Auth and Actions buttons */
@@ -350,7 +350,7 @@ select:focus-visible {
 
 .btn-auth-trigger {
   background-color: var(--espn-red);
-  color: #ffffff;
+  color: #0a0f1d;
   border: none;
   padding: 0.5rem 1rem;
   border-radius: 6px;
@@ -386,8 +386,8 @@ select:focus-visible {
   width: 26px;
   height: 26px;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--headline-gold) 0%, #b45309 100%);
-  color: #000;
+  background: linear-gradient(135deg, var(--headline-gold) 0%, #0ea5e9 100%);
+  color: #0a0f1d;
   font-weight: 800;
   font-size: 0.75rem;
   display: flex;
@@ -447,11 +447,11 @@ select:focus-visible {
 }
 
 .mobile-nav-link.active {
-  color: var(--headline-gold);
+  color: #38bdf8;
 }
 
 .mobile-nav-link.active svg {
-  color: var(--espn-red);
+  color: #38bdf8;
 }
 
 /* Auth Modal Styles */
@@ -496,7 +496,7 @@ select:focus-visible {
 }
 
 .modal-header {
-  background: linear-gradient(180deg, rgba(226, 6, 19, 0.15) 0%, transparent 100%);
+  background: linear-gradient(180deg, rgba(56, 189, 248, 0.12) 0%, transparent 100%);
   padding: 1.25rem 1.5rem;
   display: flex;
   align-items: center;
@@ -606,7 +606,7 @@ select:focus-visible {
   width: 100%;
   padding: 0.8rem;
   background-color: var(--espn-red);
-  color: #ffffff;
+  color: #0a0f1d;
   border: none;
   border-radius: 6px;
   font-family: var(--font-tech);
@@ -650,7 +650,7 @@ select:focus-visible {
 .btn-guest-mode:hover {
   border-color: var(--headline-gold);
   color: var(--headline-gold);
-  background-color: rgba(255, 204, 0, 0.05);
+  background-color: rgba(56, 189, 248, 0.08);
 }
 
 .auth-alert-box {

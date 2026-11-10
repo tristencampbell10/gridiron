@@ -112,7 +112,7 @@ export default function HomePage({ onOpenAuth, user }) {
 
       {/* Main Studio Banner with NEXT UPCOMING NFL GAME */}
       <section style={{ 
-        background: 'linear-gradient(135deg, #1e1e1e 0%, #141414 60%, rgba(226,6,19,0.22) 100%)', 
+        background: 'linear-gradient(135deg, #111827 0%, #0a0f1d 60%, rgba(56,189,248,0.16) 100%)', 
         border: '1px solid var(--card-border)',
         borderRadius: 12,
         padding: '2.25rem 2rem',
@@ -125,8 +125,8 @@ export default function HomePage({ onOpenAuth, user }) {
           display: 'inline-flex', 
           alignItems: 'center', 
           gap: 8, 
-          background: 'rgba(255, 204, 0, 0.12)', 
-          border: '1px solid rgba(255, 204, 0, 0.35)', 
+          background: 'rgba(56, 189, 248, 0.12)', 
+          border: '1px solid rgba(56, 189, 248, 0.35)', 
           color: 'var(--headline-gold)', 
           padding: '6px 14px', 
           borderRadius: 6, 
@@ -135,12 +135,12 @@ export default function HomePage({ onOpenAuth, user }) {
           fontWeight: 700,
           marginBottom: '1.25rem'
         }}>
-          <Clock size={16} className="text-amber-400" />
+          <Clock size={16} className="text-sky-400" />
           <span>NEXT UPCOMING NFL GAME:</span>
           <span style={{ color: '#ffffff' }}>
             {nextGame.awayAbbr} ({nextGame.awayRecord}) @ {nextGame.homeAbbr} ({nextGame.homeRecord})
           </span>
-          <span style={{ color: 'var(--headline-gold)', borderLeft: '1px solid rgba(255,204,0,0.4)', paddingLeft: 8 }}>
+          <span style={{ color: 'var(--headline-gold)', borderLeft: '1px solid rgba(56,189,248,0.4)', paddingLeft: 8 }}>
             {nextGame.eventDate} • {nextGame.eventTime} ({nextGame.network})
           </span>
         </div>
@@ -158,7 +158,7 @@ export default function HomePage({ onOpenAuth, user }) {
             to="/players"
             style={{
               backgroundColor: 'var(--espn-red)',
-              color: '#ffffff',
+              color: '#0a0f1d',
               textDecoration: 'none',
               padding: '0.75rem 1.5rem',
               borderRadius: 6,
@@ -283,7 +283,7 @@ export default function HomePage({ onOpenAuth, user }) {
                 style={{
                   flex: 1,
                   backgroundColor: activeStatTab === cat ? 'var(--espn-red)' : 'var(--studio-charcoal)',
-                  color: activeStatTab === cat ? '#ffffff' : 'var(--text-secondary)',
+                  color: activeStatTab === cat ? '#0a0f1d' : 'var(--text-secondary)',
                   border: '1px solid var(--card-border)',
                   borderRadius: 6,
                   padding: '0.45rem',
@@ -357,7 +357,7 @@ export default function HomePage({ onOpenAuth, user }) {
             </div>
 
             <div style={{ 
-              background: 'linear-gradient(180deg, rgba(226, 6, 19, 0.1) 0%, rgba(0, 0, 0, 0.2) 100%)',
+              background: 'linear-gradient(180deg, rgba(56, 189, 248, 0.1) 0%, rgba(10, 15, 29, 0.2) 100%)',
               border: '1px solid var(--card-border)',
               borderRadius: 8,
               padding: '1.25rem',
@@ -394,7 +394,7 @@ export default function HomePage({ onOpenAuth, user }) {
             to="/compare"
             style={{
               backgroundColor: 'var(--espn-red)',
-              color: '#ffffff',
+              color: '#0a0f1d',
               textAlign: 'center',
               textDecoration: 'none',
               padding: '0.75rem',

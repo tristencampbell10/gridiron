@@ -39,7 +39,7 @@ export default function PlayerDetailPage() {
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
               <span style={{ 
                 backgroundColor: 'var(--espn-red)', 
-                color: '#fff', 
+                color: '#0a0f1d', 
                 fontFamily: 'var(--font-display)', 
                 fontSize: '1.1rem', 
                 padding: '2px 8px', 
@@ -151,7 +151,7 @@ export default function PlayerDetailPage() {
           )}
         </div>
 
-        <div style={{ marginTop: '1.25rem', padding: '0.75rem 1rem', background: 'rgba(255, 204, 0, 0.08)', border: '1px solid rgba(255, 204, 0, 0.25)', borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
+        <div style={{ marginTop: '1.25rem', padding: '0.75rem 1rem', background: 'rgba(56, 189, 248, 0.08)', border: '1px solid rgba(56, 189, 248, 0.25)', borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <Calendar size={16} style={{ color: 'var(--headline-gold)' }} />
             <span style={{ fontSize: '0.85rem' }}>Upcoming Matchup: <strong>{player.nextGame}</strong></span>
