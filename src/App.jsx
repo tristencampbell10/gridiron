@@ -1,123 +1,115 @@
 import React, { useState, useEffect } from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useInRouterContext } from 'react-router-dom';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import Navbar from './components/Navbar';
 import AuthModal from './components/AuthModal';
-import { supabase, isSupabaseConfigured } from './supabaseClient';
 
-// Pages
-import HomePage from './pages/HomePage';
-import PlayersPage from './pages/PlayersPage';
-import PlayerDetailPage from './pages/PlayerDetailPage';
+// Domain Pages
+import Dashboard from './pages/Dashboard';
+import Directory from './pages/Directory';
+import Profile from './pages/Profile';
 import Compare from './pages/Compare';
 import Lineups from './pages/Lineups';
 
-export default function App() {
+/**
+ * AppContent Component
+ * Renders the main shell, ESPN Navbar, Route Views, and AuthModal
+ * consumes session state directly from useAuth()
+ */
+function AppContent() {
   const [theme, setTheme] = useState(() => {
     return localStorage.getItem('gridiron-theme') || 'dark';
   });
-  const [authModalOpen, setAuthModalOpen] = useState(false);
-  const [user, setUser] = useState(null);
 
-  // Sync theme attribute with document
+  const { 
+    user, 
+    signOut, 
+    authModalOpen, 
+    openAuthModal, 
+    closeAuthModal, 
+    onAuthSuccess 
+  } = useAuth();
+
+  // Sync data-theme attribute with document root
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
     localStorage.setItem('gridiron-theme', theme);
   }, [theme]);
 
-  // Auth state listener with Supabase
-  useEffect(() => {
-    if (isSupabaseConfigured) {
-      // Fetch initial session
-      supabase.auth.getSession().then(({ data: { session } }) => {
-        if (session?.user) {
-          setUser(session.user);
-        }
-      }).catch(err => {
-        console.warn('Initial session check note:', err);
-      });
-
-      // Listen for changes
-      const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-        setUser(session?.user ?? null);
-      });
-
-      return () => {
-        subscription?.unsubscribe();
-      };
-    } else {
-      // Check stored preview mock user if available
-      const stored = localStorage.getItem('gridiron-preview-user');
-      if (stored) {
-        try {
-          setUser(JSON.parse(stored));
-        } catch {
-          // ignore
-        }
-      }
-    }
-  }, []);
-
   const handleToggleTheme = () => {
     setTheme(prev => (prev === 'dark' ? 'light' : 'dark'));
   };
 
-  const handleOpenAuth = () => {
-    setAuthModalOpen(true);
-  };
-
-  const handleCloseAuth = () => {
-    setAuthModalOpen(false);
-  };
-
-  const handleAuthSuccess = (authenticatedUser) => {
-    setUser(authenticatedUser);
-    if (!isSupabaseConfigured && authenticatedUser) {
-      localStorage.setItem('gridiron-preview-user', JSON.stringify(authenticatedUser));
-    }
-  };
-
-  const handleSignOut = async () => {
-    if (isSupabaseConfigured) {
-      try {
-        await supabase.auth.signOut();
-      } catch (err) {
-        console.warn('Sign out warning:', err);
-      }
-    }
-    localStorage.removeItem('gridiron-preview-user');
-    setUser(null);
-  };
-
   return (
     <div className="app-container">
-      {/* ESPN Shell Navbar */}
+      {/* ESPN Theme Navbar Shell */}
       <Navbar
         user={user}
-        onOpenAuth={handleOpenAuth}
-        onSignOut={handleSignOut}
+        onOpenAuth={openAuthModal}
+        onSignOut={signOut}
         theme={theme}
         onToggleTheme={handleToggleTheme}
       />
 
-      {/* Main Content View */}
-      <main className="main-content">
+      {/* Main Content Router View */}
+      <main className="main-content" role="main">
         <Routes>
-          <Route path="/" element={<HomePage onOpenAuth={handleOpenAuth} user={user} />} />
-          <Route path="/players" element={<PlayersPage />} />
-          <Route path="/players/:id" element={<PlayerDetailPage />} />
-          <Route path="/compare" element={<Compare />} />
-          <Route path="/lineups" element={<Lineups user={user} onOpenAuth={handleOpenAuth} />} />
-          {/* Fallback to Home */}
-          <Route path="*" element={<HomePage onOpenAuth={handleOpenAuth} user={user} />} />
+          {/* View 1: Home / Dashboard */}
+          <Route path="/" element={<Dashboard onOpenAuth={openAuthModal} user={user} />} />
+          
+          {/* View 2: Player Directory & Search */}
+          <Route path="/players" element={<Directory user={user} onOpenAuth={openAuthModal} />} />
+          
+          {/* View 3: Player Profile Detail View */}
+          <Route path="/players/:id" element={<Profile user={user} onOpenAuth={openAuthModal} />} />
+          
+          {/* View 4: Head-to-Head Comparison View */}
+          <Route path="/compare" element={<Compare user={user} onOpenAuth={openAuthModal} />} />
+          
+          {/* View 5: Roster / Lineup Builder & Exporter */}
+          <Route path="/lineups" element={<Lineups user={user} onOpenAuth={openAuthModal} />} />
+          
+          {/* Universal Fallback to Dashboard */}
+          <Route path="*" element={<Dashboard onOpenAuth={openAuthModal} user={user} />} />
         </Routes>
       </main>
 
-      {/* Auth Modal */}
+      {/* Supabase Authentication Modal with Guest Migration hook */}
       <AuthModal
         isOpen={authModalOpen}
-        onClose={handleCloseAuth}
-        onAuthSuccess={handleAuthSuccess}
+        onClose={closeAuthModal}
+        onAuthSuccess={onAuthSuccess}
       />
     </div>
+  );
+}
+
+/**
+ * RouterSafeContainer
+ * Ensures BrowserRouter is present without throwing duplicate Router errors
+ */
+function RouterSafeContainer({ children }) {
+  try {
+    const isInsideRouter = useInRouterContext();
+    if (isInsideRouter) {
+      return <>{children}</>;
+    }
+  } catch {
+    // If hook called outside router context, proceed to render BrowserRouter
+  }
+  return <BrowserRouter>{children}</BrowserRouter>;
+}
+
+/**
+ * Main App Entry Point
+ * Configures BrowserRouter, AuthProvider context, and application routing
+ */
+export default function App() {
+  return (
+    <RouterSafeContainer>
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
+    </RouterSafeContainer>
   );
 }

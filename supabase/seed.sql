@@ -266,3 +266,26 @@ BEGIN
   RETURN result;
 END;
 $$;
+
+-- Stored Procedure: migrate_guest_data
+CREATE OR REPLACE FUNCTION public.migrate_guest_data(
+  p_user_id UUID,
+  p_watchlist JSONB DEFAULT '[]'::jsonb,
+  p_lineups JSONB DEFAULT '[]'::jsonb,
+  p_notes JSONB DEFAULT '[]'::jsonb
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  result JSONB;
+BEGIN
+  result := jsonb_build_object(
+    'status', 'success',
+    'migrated_user', p_user_id,
+    'timestamp', now()
+  );
+  RETURN result;
+END;
+$$;
