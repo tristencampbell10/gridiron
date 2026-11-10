@@ -228,3 +228,41 @@ SELECT
   CASE WHEN position IN ('WR', 'TE') THEN 5 + floor(random() * 8)::int ELSE 0 END,
   (4.00 + (random() * 0.95))::numeric(3,2)
 FROM public.players;
+
+-- 3. CUSTOM LINEUPS SCHEMA & RPC FUNCTION
+CREATE TABLE IF NOT EXISTS public.custom_lineups (
+  id TEXT PRIMARY KEY,
+  user_id UUID,
+  name TEXT NOT NULL,
+  formation TEXT NOT NULL,
+  personal_rating INT DEFAULT 5,
+  slots JSONB,
+  is_finalized BOOLEAN DEFAULT FALSE,
+  finalized_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Stored Procedure: finalize_lineup
+CREATE OR REPLACE FUNCTION public.finalize_lineup(p_lineup_id TEXT)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  result JSONB;
+BEGIN
+  UPDATE public.custom_lineups
+  SET is_finalized = TRUE,
+      finalized_at = now()
+  WHERE id = p_lineup_id;
+
+  result := jsonb_build_object(
+    'status', 'success',
+    'lineup_id', p_lineup_id,
+    'finalized_at', now()
+  );
+  
+  RETURN result;
+END;
+$$;

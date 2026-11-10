@@ -8,8 +8,8 @@ import { supabase, isSupabaseConfigured } from './supabaseClient';
 import HomePage from './pages/HomePage';
 import PlayersPage from './pages/PlayersPage';
 import PlayerDetailPage from './pages/PlayerDetailPage';
-import ComparePage from './pages/ComparePage';
-import LineupsPage from './pages/LineupsPage';
+import Compare from './pages/Compare';
+import Lineups from './pages/Lineups';
 
 export default function App() {
   const [theme, setTheme] = useState(() => {
@@ -105,8 +105,8 @@ export default function App() {
           <Route path="/" element={<HomePage onOpenAuth={handleOpenAuth} user={user} />} />
           <Route path="/players" element={<PlayersPage />} />
           <Route path="/players/:id" element={<PlayerDetailPage />} />
-          <Route path="/compare" element={<ComparePage />} />
-          <Route path="/lineups" element={<LineupsPage user={user} onOpenAuth={handleOpenAuth} />} />
+          <Route path="/compare" element={<Compare />} />
+          <Route path="/lineups" element={<Lineups user={user} onOpenAuth={handleOpenAuth} />} />
           {/* Fallback to Home */}
           <Route path="*" element={<HomePage onOpenAuth={handleOpenAuth} user={user} />} />
         </Routes>
