@@ -22,7 +22,7 @@ import { CURRENT_SEASON_INFO } from '../data/nfl2026Data';
 const ALL_AVAILABLE_PLAYERS = [...ALL_32_TEAMS_PLAYERS, ...NFL_DEFENSIVE_PLAYERS];
 
 // Helper to resolve player avatar URL with high-reliability fallback
-export const getPlayerAvatarUrl = (player, fallbackColor = 'e20613') => {
+export const getPlayerAvatarUrl = (player, fallbackColor = '38bdf8') => {
   if (player?.avatar_url && typeof player.avatar_url === 'string' && player.avatar_url.trim() !== '') {
     return player.avatar_url;
   }
@@ -280,7 +280,7 @@ export default function Compare() {
     {
       id: 'RECEIVING',
       title: 'Receiving & Target Share',
-      icon: <Target size={18} style={{ color: '#f43f5e' }} />,
+      icon: <Target size={18} style={{ color: '#38bdf8' }} />,
       metrics: [
         {
           label: 'Receptions',
@@ -371,9 +371,9 @@ export default function Compare() {
           display: 'inline-flex', 
           alignItems: 'center', 
           gap: 6, 
-          background: 'rgba(255, 204, 0, 0.12)', 
+          background: 'rgba(56, 189, 248, 0.12)',
           color: 'var(--headline-gold)', 
-          border: '1px solid rgba(255, 204, 0, 0.35)', 
+          border: '1px solid rgba(56, 189, 248, 0.35)',
           padding: '4px 12px', 
           borderRadius: 4, 
           fontFamily: 'var(--font-tech)', 
@@ -414,11 +414,11 @@ export default function Compare() {
           {/* Header Player A */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <img
-              src={getPlayerAvatarUrl(playerA, 'e20613')}
+              src={getPlayerAvatarUrl(playerA, '38bdf8')}
               alt={playerA.name}
               onError={(e) => {
                 e.currentTarget.onerror = null;
-                e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(playerA.name || 'Player')}&background=1e1e1e&color=e20613&bold=true&size=128`;
+                e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(playerA.name || 'Player')}&background=0a0f1d&color=38bdf8&bold=true&size=128`;
               }}
               style={{
                 width: 64,
@@ -461,11 +461,11 @@ export default function Compare() {
               </div>
             </div>
             <img
-              src={getPlayerAvatarUrl(playerB, 'ffcc00')}
+              src={getPlayerAvatarUrl(playerB, '94a3b8')}
               alt={playerB.name}
               onError={(e) => {
                 e.currentTarget.onerror = null;
-                e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(playerB.name || 'Player')}&background=1e1e1e&color=ffcc00&bold=true&size=128`;
+                e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(playerB.name || 'Player')}&background=0a0f1d&color=94a3b8&bold=true&size=128`;
               }}
               style={{
                 width: 64,
@@ -497,7 +497,7 @@ export default function Compare() {
               }}
               style={{
                 background: (playerAId === item.a && playerBId === item.b) ? 'var(--espn-red)' : 'var(--card-slate)',
-                color: (playerAId === item.a && playerBId === item.b) ? '#ffffff' : 'var(--text-primary)',
+                color: (playerAId === item.a && playerBId === item.b) ? '#0a0f1d' : 'var(--text-primary)',
                 border: '1px solid var(--card-border)',
                 padding: '6px 14px',
                 borderRadius: 6,
@@ -590,11 +590,11 @@ export default function Compare() {
             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
               <div style={{ position: 'relative', width: 64, height: 64, flexShrink: 0 }}>
                 <img
-                  src={getPlayerAvatarUrl(playerA, 'e20613')}
+                  src={getPlayerAvatarUrl(playerA, '38bdf8')}
                   alt={playerA.name}
                   onError={(e) => {
                     e.currentTarget.onerror = null;
-                    e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(playerA.name || 'Player')}&background=1e1e1e&color=e20613&bold=true&size=128`;
+                    e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(playerA.name || 'Player')}&background=0a0f1d&color=38bdf8&bold=true&size=128`;
                   }}
                   style={{
                     width: 64,
@@ -602,7 +602,7 @@ export default function Compare() {
                     borderRadius: '50%',
                     objectFit: 'cover',
                     border: '2px solid var(--espn-red)',
-                    boxShadow: '0 2px 10px rgba(226, 6, 19, 0.35)',
+                    boxShadow: '0 2px 10px rgba(56, 189, 248, 0.35)',
                     display: 'block'
                   }}
                 />
@@ -631,7 +631,7 @@ export default function Compare() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <span style={{ 
                     background: 'var(--espn-red)', 
-                    color: '#fff', 
+                    color: '#0a0f1d',
                     fontSize: '0.7rem', 
                     fontWeight: 800, 
                     padding: '1px 6px', 
@@ -703,7 +703,7 @@ export default function Compare() {
             alignItems: 'center', 
             justifyContent: 'center',
             color: '#fff',
-            boxShadow: '0 0 16px rgba(226, 6, 19, 0.4)',
+            boxShadow: '0 0 16px rgba(56, 189, 248, 0.4)',
             marginBottom: 8
           }}>
             <ArrowLeftRight size={20} />
@@ -794,11 +794,11 @@ export default function Compare() {
             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
               <div style={{ position: 'relative', width: 64, height: 64, flexShrink: 0 }}>
                 <img
-                  src={getPlayerAvatarUrl(playerB, 'ffcc00')}
+                  src={getPlayerAvatarUrl(playerB, '94a3b8')}
                   alt={playerB.name}
                   onError={(e) => {
                     e.currentTarget.onerror = null;
-                    e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(playerB.name || 'Player')}&background=1e1e1e&color=ffcc00&bold=true&size=128`;
+                    e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(playerB.name || 'Player')}&background=0a0f1d&color=94a3b8&bold=true&size=128`;
                   }}
                   style={{
                     width: 64,
@@ -806,7 +806,7 @@ export default function Compare() {
                     borderRadius: '50%',
                     objectFit: 'cover',
                     border: '2px solid var(--headline-gold)',
-                    boxShadow: '0 2px 10px rgba(255, 204, 0, 0.35)',
+                    boxShadow: '0 2px 10px rgba(148, 163, 184, 0.35)',
                     display: 'block'
                   }}
                 />
@@ -835,7 +835,7 @@ export default function Compare() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <span style={{ 
                     background: 'var(--headline-gold)', 
-                    color: '#000', 
+                    color: '#0a0f1d',
                     fontSize: '0.7rem', 
                     fontWeight: 800, 
                     padding: '1px 6px', 
@@ -1076,12 +1076,12 @@ export default function Compare() {
                     }}>
                       <div style={{ 
                         width: `${comp.pctA}%`, 
-                        backgroundColor: isWinnerA ? '#22c55e' : (isTie ? '#94a3b8' : 'rgba(226, 6, 19, 0.4)'),
+                        backgroundColor: isWinnerA ? '#22c55e' : (isTie ? '#94a3b8' : 'rgba(56, 189, 248, 0.4)'),
                         transition: 'width 0.4s ease'
                       }} />
                       <div style={{ 
                         width: `${comp.pctB}%`, 
-                        backgroundColor: isWinnerB ? '#22c55e' : (isTie ? '#94a3b8' : 'rgba(255, 204, 0, 0.4)'),
+                        backgroundColor: isWinnerB ? '#22c55e' : (isTie ? '#94a3b8' : 'rgba(148, 163, 184, 0.4)'),
                         transition: 'width 0.4s ease'
                       }} />
                     </div>

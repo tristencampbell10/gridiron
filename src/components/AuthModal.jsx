@@ -173,9 +173,9 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
         {/* Modal Header */}
         <div className="modal-header">
           <div className="modal-title-group">
-            <Lock size={18} className="text-amber-400" />
+            <Lock size={18} style={{ color: '#38bdf8' }} />
             <h2 id="modal-title" className="modal-title">
-              GRIDIRON <span className="text-red-600">AUTH</span>
+              GRIDIRON <span style={{ color: '#38bdf8' }}>AUTH</span>
             </h2>
           </div>
           <button

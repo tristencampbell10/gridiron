@@ -416,7 +416,7 @@ export default function Lineups({ user, onOpenAuth }) {
               onClick={handleFinalizeLineup}
               style={{
                 backgroundColor: 'var(--espn-red)',
-                color: '#ffffff',
+                color: '#0a0f1d',
                 border: 'none',
                 padding: '8px 18px',
                 borderRadius: 6,
@@ -460,7 +460,7 @@ export default function Lineups({ user, onOpenAuth }) {
                 cursor: 'pointer',
                 transition: 'all 0.15s ease',
                 position: 'relative',
-                boxShadow: isSelected ? '0 0 14px rgba(255, 204, 0, 0.15)' : 'none'
+                boxShadow: isSelected ? '0 0 14px rgba(56, 189, 248, 0.2)' : 'none'
               }}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
@@ -475,7 +475,7 @@ export default function Lineups({ user, onOpenAuth }) {
                 {isSelected && (
                   <span style={{ 
                     background: 'var(--headline-gold)', 
-                    color: '#000', 
+                    color: '#0a0f1d',
                     borderRadius: '50%', 
                     width: 18, 
                     height: 18, 
@@ -557,7 +557,7 @@ export default function Lineups({ user, onOpenAuth }) {
                     border: 'none',
                     padding: 2,
                     cursor: isFinalized ? 'default' : 'pointer',
-                    color: active ? 'var(--headline-gold)' : '#4b5563',
+                    color: active ? 'var(--headline-gold)' : '#64748b',
                     transition: 'transform 0.1s ease',
                     display: 'flex',
                     alignItems: 'center',
@@ -693,7 +693,7 @@ export default function Lineups({ user, onOpenAuth }) {
                         fontSize: '0.7rem', 
                         fontFamily: 'var(--font-tech)', 
                         fontWeight: 700, 
-                        background: 'rgba(255, 204, 0, 0.15)', 
+                        background: 'rgba(56, 189, 248, 0.15)',
                         color: 'var(--headline-gold)', 
                         padding: '1px 6px', 
                         borderRadius: 3 
@@ -743,7 +743,7 @@ export default function Lineups({ user, onOpenAuth }) {
                     onClick={() => setActiveSlotModal({ slotIndex: index, rule: slotRule })}
                     style={{
                       backgroundColor: player ? 'var(--studio-charcoal)' : 'var(--espn-red)',
-                      color: '#ffffff',
+                      color: player ? 'var(--text-primary)' : '#0a0f1d',
                       border: '1px solid var(--card-border)',
                       padding: '6px 12px',
                       borderRadius: 4,
@@ -925,7 +925,7 @@ export default function Lineups({ user, onOpenAuth }) {
                         type="button"
                         style={{
                           backgroundColor: 'var(--espn-red)',
-                          color: '#fff',
+                          color: '#0a0f1d',
                           border: 'none',
                           padding: '4px 10px',
                           borderRadius: 4,

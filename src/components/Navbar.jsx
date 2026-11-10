@@ -82,7 +82,7 @@ export default function Navbar({ user, onOpenAuth, onSignOut, theme, onToggleThe
       {selectedTickerGame && (
         <div className="bg-zinc-900 border-b border-zinc-800 px-4 py-2 text-xs flex items-center justify-between text-zinc-300">
           <div className="flex items-center gap-3">
-            <span className="text-amber-400 font-bold uppercase tracking-wider">
+            <span style={{ color: '#38bdf8' }} className="font-bold uppercase tracking-wider">
               {selectedTickerGame.awayName || selectedTickerGame.away} @ {selectedTickerGame.homeName || selectedTickerGame.home}
             </span>
             <span className="text-zinc-400">

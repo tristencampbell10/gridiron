@@ -45,19 +45,19 @@
 
 /* Light Theme Variables */
 [data-theme='light'] {
-  --bg-primary: #0a0f1d;
-  --bg-secondary: #111827;
-  --bg-tertiary: #1e293b;
-  --studio-charcoal: #111827;
-  --studio-darker: #0a0f1d;
-  --card-slate: #111827;
-  --card-slate-elevated: #172033;
-  --card-border: rgba(148, 163, 184, 0.28);
+  --bg-primary: #f4f5f7;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #e5e7eb;
+  --studio-charcoal: #ffffff;
+  --studio-darker: #f0f2f5;
+  --card-slate: #ffffff;
+  --card-slate-elevated: #fbfbfb;
+  --card-border: #cbd5e1;
   --card-border-highlight: #cbd5e1;
 
-  --text-primary: #f1f5f9;
-  --text-secondary: #94a3b8;
-  --text-muted: #cbd5e1;
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #64748b;
   --text-highlight: #38bdf8;
   --border-subtle: rgba(148, 163, 184, 0.2);
 
@@ -444,6 +444,13 @@ select:focus-visible {
   flex: 1;
   height: 100%;
   transition: all 0.15s ease;
+}
+
+.mobile-bottom-navbar button.mobile-nav-link {
+  background: transparent;
+  border: 0;
+  font: inherit;
+  cursor: pointer;
 }
 
 .mobile-nav-link.active {
