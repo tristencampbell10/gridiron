@@ -27,31 +27,8 @@ import { CURRENT_SEASON_INFO } from '../data/nfl2026Data';
 // All players pooled
 const ALL_PLAYERS_POOL = [...ALL_32_TEAMS_PLAYERS, ...NFL_DEFENSIVE_PLAYERS];
 
-// ==========================================
-// FORMULA-SANITIZED CSV HELPER (SECURITY)
-// Prepends ' to any cell beginning with =, +, -, @, \t, or \r
-// Prevents CSV Formula Injection in Excel / Google Sheets
-// ==========================================
-export function sanitizeCsvCell(value) {
-  if (value === null || value === undefined) return '';
-  const stringValue = String(value).trim();
-  // Check if string begins with formula operator or control character
-  if (/^[=\+\-@\t\r]/.test(stringValue)) {
-    return `'${stringValue}`;
-  }
-  return stringValue;
-}
-
-export function formatCsvRow(fields) {
-  return fields.map(field => {
-    const sanitized = sanitizeCsvCell(field);
-    // Wrap in quotes if it contains commas, double quotes, or newlines
-    if (sanitized.includes(',') || sanitized.includes('"') || sanitized.includes('\n')) {
-      return `"${sanitized.replace(/"/g, '""')}"`;
-    }
-    return sanitized;
-  }).join(',');
-}
+import { exportLineupToCSV, sanitizeCsvField, sanitizeCsvCell, formatCsvRow } from '../utils/csvExporter';
+export { sanitizeCsvCell, formatCsvRow };
 
 // Canonical Formation Definitions and Formation Slots
 export const FORMATION_PRESETS = {
@@ -336,62 +313,16 @@ export default function Lineups({ user, onOpenAuth }) {
 
   // Formula-sanitized CSV export
   const handleExportCSV = () => {
-    const headers = [
-      'Lineup Name',
-      'Formation Preset',
-      'Personal Star Rating',
-      'Slot Index',
-      'Slot Code',
-      'Eligible Positions',
-      'Player Name',
-      'Position',
-      'Team',
-      'Jersey Number',
-      'Performance Rating (0-5)',
-      '2026 Fantasy Points',
-      'Eligibility Valid',
-      'Finalized Status'
-    ];
-
-    const rows = lineupSlots.map((item, idx) => {
-      const slotRule = currentPreset.slots[idx];
-      const p = item.player;
-      const valid = p ? isPlayerEligible(p, slotRule) : 'EMPTY';
-
-      return [
-        lineupName,
-        selectedPresetKey,
-        `${personalRating} Stars`,
-        idx + 1,
-        item.slotName,
-        slotRule.eligible.join('/'),
-        p ? p.name : 'UNASSIGNED',
-        p ? (p.pos || p.position) : '--',
-        p ? (p.teamAbbr || p.team) : '--',
-        p ? (p.jersey_number ?? p.number) : '--',
-        p ? Number(p.player_performance_rating || 0).toFixed(2) : '0.00',
-        p ? (p.fantasyPts || 0) : '0.0',
-        valid ? 'VALID' : 'INVALID_POSITION',
-        isFinalized ? 'LOCKED & FINALIZED' : 'DRAFT'
-      ];
-    });
-
-    // Assemble CSV with sanitization
-    const csvContent = [
-      formatCsvRow(headers),
-      ...rows.map(row => formatCsvRow(row))
-    ].join('\r\n');
-
-    // Trigger download
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    const safeFilename = lineupName.toLowerCase().replace(/[^a-z0-9]/g, '_');
-    link.setAttribute('href', url);
-    link.setAttribute('download', `gridiron_${safeFilename}_${Date.now()}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    exportLineupToCSV({
+      name: lineupName,
+      formation: selectedPresetKey,
+      personal_rating: personalRating,
+      slots: lineupSlots.map((item, idx) => ({
+        ...item,
+        eligible: currentPreset.slots[idx]?.eligible,
+        status: item.player ? (isPlayerEligible(item.player, currentPreset.slots[idx]) ? 'VALID' : 'INVALID_POSITION') : 'EMPTY'
+      }))
+    }, ALL_PLAYERS_POOL);
   };
 
   return (
