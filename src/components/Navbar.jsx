@@ -56,21 +56,21 @@ export default function Navbar({ user, onOpenAuth, onSignOut, theme, onToggleThe
                 <span className="badge-scheduled">NEXT GAME</span>
               )}
 
-              <span className="ticker-matchup font-bold">
+              <span className="ticker-matchup font-bold" style={{ color: 'var(--text-primary)' }}>
                 <span>
                   {game.away} {game.awayScore !== '-' ? game.awayScore : ''}
                 </span>
-                <span className="mx-1 text-zinc-500">@</span>
+                <span className="mx-1" style={{ color: 'var(--text-secondary)' }}>@</span>
                 <span>
                   {game.home} {game.homeScore !== '-' ? game.homeScore : ''}
                 </span>
               </span>
 
-              <span className="text-zinc-400 text-xs pl-1 border-l border-zinc-700">
+              <span className="text-xs pl-2" style={{ color: 'var(--text-muted)', borderLeft: '1px solid var(--card-border)' }}>
                 {game.clock || game.detail}
               </span>
 
-              <span className="text-zinc-500 text-xs hidden sm:inline">
+              <span className="text-xs hidden sm:inline font-semibold" style={{ color: '#38bdf8' }}>
                 [{game.network}]
               </span>
             </button>

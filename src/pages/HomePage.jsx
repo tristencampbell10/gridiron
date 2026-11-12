@@ -113,44 +113,86 @@ export default function HomePage({ onOpenAuth, user }) {
       {/* Main Studio Banner with NEXT UPCOMING NFL GAME */}
       <section style={{ 
         background: 'linear-gradient(135deg, #111827 0%, #0a0f1d 60%, rgba(56,189,248,0.16) 100%)', 
-        border: '1px solid var(--card-border)',
+        border: '1px solid rgba(56, 189, 248, 0.35)',
         borderRadius: 12,
         padding: '2.25rem 2rem',
         marginBottom: '2rem',
         position: 'relative',
-        overflow: 'hidden'
+        overflow: 'hidden',
+        color: '#f8fafc'
       }}>
         {/* Next Game Notification Ribbon */}
         <div style={{ 
-          display: 'inline-flex', 
+          display: 'flex', 
+          flexWrap: 'wrap',
           alignItems: 'center', 
-          gap: 8, 
-          background: 'rgba(56, 189, 248, 0.12)', 
-          border: '1px solid rgba(56, 189, 248, 0.35)', 
-          color: 'var(--headline-gold)', 
-          padding: '6px 14px', 
-          borderRadius: 6, 
+          justifyContent: 'space-between',
+          gap: '0.75rem', 
+          background: 'linear-gradient(90deg, rgba(56, 189, 248, 0.24) 0%, rgba(15, 23, 42, 0.96) 100%)', 
+          border: '1.5px solid #38bdf8', 
+          padding: '10px 16px', 
+          borderRadius: 8, 
           fontFamily: 'var(--font-tech)', 
-          fontSize: '0.85rem', 
+          fontSize: '0.92rem', 
           fontWeight: 700,
-          marginBottom: '1.25rem'
+          marginBottom: '1.35rem',
+          boxShadow: '0 0 20px rgba(56, 189, 248, 0.22)'
         }}>
-          <Clock size={16} className="text-sky-400" />
-          <span>NEXT UPCOMING NFL GAME:</span>
-          <span style={{ color: '#ffffff' }}>
-            {nextGame.awayAbbr} ({nextGame.awayRecord}) @ {nextGame.homeAbbr} ({nextGame.homeRecord})
-          </span>
-          <span style={{ color: 'var(--headline-gold)', borderLeft: '1px solid rgba(56,189,248,0.4)', paddingLeft: 8 }}>
-            {nextGame.eventDate} • {nextGame.eventTime} ({nextGame.network})
-          </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+            <span style={{
+              backgroundColor: '#38bdf8',
+              color: '#0a0f1d',
+              padding: '3px 9px',
+              borderRadius: 4,
+              fontSize: '0.75rem',
+              fontWeight: 900,
+              letterSpacing: '0.06em',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 5
+            }}>
+              <Clock size={14} strokeWidth={2.5} />
+              NEXT GAME
+            </span>
+
+            <span style={{ color: '#ffffff', fontSize: '1.05rem', fontWeight: 900, letterSpacing: '0.02em' }}>
+              {nextGame.awayAbbr} ({nextGame.awayRecord}) @ {nextGame.homeAbbr} ({nextGame.homeRecord})
+            </span>
+
+            <span style={{ color: '#e2e8f0', fontSize: '0.86rem', fontWeight: 600 }}>
+              • {nextGame.awayTeam} at {nextGame.homeTeam}
+            </span>
+          </div>
+
+          <div style={{ 
+            color: '#7dd3fc', 
+            fontSize: '0.86rem', 
+            fontWeight: 800,
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 8
+          }}>
+            <Calendar size={14} style={{ color: '#38bdf8' }} />
+            <span>{nextGame.eventDate} • {nextGame.eventTime}</span>
+            <span style={{
+              backgroundColor: 'rgba(10, 15, 29, 0.85)',
+              color: '#38bdf8',
+              border: '1px solid rgba(56, 189, 248, 0.5)',
+              padding: '2px 8px',
+              borderRadius: 4,
+              fontSize: '0.74rem'
+            }}>
+              {nextGame.network}
+            </span>
+          </div>
         </div>
 
-        <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(2.4rem, 5vw, 4rem)', lineHeight: 1.05, textTransform: 'uppercase', fontWeight: 700, marginBottom: '0.75rem' }}>
+        <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(2.4rem, 5vw, 4rem)', lineHeight: 1.05, textTransform: 'uppercase', fontWeight: 700, marginBottom: '0.75rem', color: '#f8fafc' }}>
           ESPN NFL <span style={{ color: 'var(--headline-gold)' }}>COMMAND CENTER</span>
         </h1>
         
-        <p style={{ color: 'var(--text-secondary)', fontSize: '1.05rem', maxWidth: 760, marginBottom: '1.75rem', lineHeight: 1.6 }}>
-          Live scores and verified season stats directly from the ESPN API. Next up on the schedule: <strong>{nextGame.matchupTitle}</strong>. Full player performance rankings and weekly matchup analytics.
+        <p style={{ color: '#cbd5e1', fontSize: '1.05rem', maxWidth: 760, marginBottom: '1.75rem', lineHeight: 1.6 }}>
+          Live scores and verified season stats directly from the ESPN API. Next up on the schedule: <strong style={{ color: '#ffffff' }}>{nextGame.matchupTitle}</strong>. Full player performance rankings and weekly matchup analytics.
         </p>
 
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', alignItems: 'center' }}>

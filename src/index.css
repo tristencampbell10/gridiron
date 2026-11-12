@@ -160,7 +160,8 @@ select:focus-visible {
   align-items: center;
   gap: 8px;
   padding: 4px 10px;
-  background-color: rgba(255, 255, 255, 0.04);
+  background-color: var(--card-slate);
+  color: var(--text-primary);
   border: 1px solid var(--card-border);
   border-radius: 4px;
   font-size: 0.8rem;
@@ -171,17 +172,17 @@ select:focus-visible {
 }
 
 .ticker-item:hover {
-  background-color: rgba(255, 255, 255, 0.09);
+  background-color: var(--card-slate-elevated);
   border-color: var(--headline-gold);
 }
 
 .badge-live {
   background-color: var(--live-red);
   color: #fff;
-  padding: 1px 6px;
+  padding: 2px 7px;
   border-radius: 3px;
   font-size: 0.68rem;
-  font-weight: 700;
+  font-weight: 800;
   letter-spacing: 0.05em;
   animation: pulse-live 1.5s infinite;
 }
@@ -189,20 +190,21 @@ select:focus-visible {
 .badge-final {
   background-color: var(--status-final);
   color: #000;
-  padding: 1px 6px;
+  padding: 2px 7px;
   border-radius: 3px;
   font-size: 0.68rem;
-  font-weight: 700;
+  font-weight: 800;
 }
 
 .badge-scheduled {
-  background-color: rgba(56, 189, 248, 0.2);
-  color: var(--status-scheduled);
-  border: 1px solid rgba(56, 189, 248, 0.3);
-  padding: 1px 6px;
+  background-color: #38bdf8;
+  color: #0a0f1d;
+  border: 1px solid #7dd3fc;
+  padding: 2px 7px;
   border-radius: 3px;
   font-size: 0.68rem;
-  font-weight: 600;
+  font-weight: 800;
+  letter-spacing: 0.04em;
 }
 
 @keyframes pulse-live {
