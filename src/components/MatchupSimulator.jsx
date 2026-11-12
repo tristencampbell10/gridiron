@@ -50,14 +50,28 @@ const getPos = (p) => p?.pos || p?.position || 'FLEX';
 const getTeamAbbr = (p) => p?.teamAbbr || p?.team || 'NFL';
 
 /**
+ * Deterministic seeded PRNG for Mystery Draft CPU rosters
+ */
+function seededValue(seed, index) {
+  const x = Math.sin(seed * 9301 + index * 49297) * 233280;
+  return x - Math.floor(x);
+}
+
+/**
  * Build a dynamic 11-player CPU roster matching current formation slots
  */
-function buildCpuRoster(allPlayers, formationSlots, priorityTeams = []) {
+function buildCpuRoster(allPlayers, formationSlots, config = {}) {
+  const {
+    priorityTeams = [],
+    tier = 'ALL_PRO', // 'ALL_PRO' | 'COMPETITIVE' | 'ROOKIE' | 'AIR_RAID' | 'GROUND_POUND' | 'RANDOM'
+    seed = 1
+  } = Array.isArray(config) ? { priorityTeams: config } : config;
+
   const usedIds = new Set();
   const activePool = (allPlayers || []).filter(isActivePlayer);
   const fallbackPool = allPlayers || [];
 
-  return formationSlots.map((slot) => {
+  return formationSlots.map((slot, slotIdx) => {
     const eligibleSet = new Set(slot.eligible || []);
     const candidates = (activePool.length > 0 ? activePool : fallbackPool).filter(
       (p) => eligibleSet.has(getPos(p)) && !usedIds.has(p.id)
@@ -68,13 +82,66 @@ function buildCpuRoster(allPlayers, formationSlots, priorityTeams = []) {
       const bPriority = priorityTeams.includes(getTeamAbbr(b)) ? 1 : 0;
       if (aPriority !== bPriority) return bPriority - aPriority;
 
+      if (tier === 'AIR_RAID') {
+        const aAir =
+          Number(a.passYds || 0) * 0.04 +
+          Number(a.recYds || 0) * 0.08 +
+          Number(a.passTd || 0) * 3 +
+          Number(a.recTd || 0) * 4 +
+          Number(a.player_performance_rating || 4.0) * 12;
+        const bAir =
+          Number(b.passYds || 0) * 0.04 +
+          Number(b.recYds || 0) * 0.08 +
+          Number(b.passTd || 0) * 3 +
+          Number(b.recTd || 0) * 4 +
+          Number(b.player_performance_rating || 4.0) * 12;
+        return bAir - aAir;
+      }
+
+      if (tier === 'GROUND_POUND') {
+        const aGround =
+          Number(a.rushYds || 0) * 0.09 +
+          Number(a.rushTd || 0) * 4 +
+          Number(a.tackles || 0) * 0.6 +
+          Number(a.sacks || 0) * 3 +
+          Number(a.player_performance_rating || 4.0) * 12;
+        const bGround =
+          Number(b.rushYds || 0) * 0.09 +
+          Number(b.rushTd || 0) * 4 +
+          Number(b.tackles || 0) * 0.6 +
+          Number(b.sacks || 0) * 3 +
+          Number(b.player_performance_rating || 4.0) * 12;
+        return bGround - aGround;
+      }
+
       const ratingDiff = Number(b.player_performance_rating || 4.0) - Number(a.player_performance_rating || 4.0);
       if (Math.abs(ratingDiff) > 0.01) return ratingDiff;
 
       return Number(b.fantasyPts || 100) - Number(a.fantasyPts || 100);
     });
 
-    const chosen = sorted[0] || fallbackPool.find((p) => eligibleSet.has(getPos(p))) || null;
+    let chosen = null;
+    if (sorted.length > 0) {
+      if (tier === 'COMPETITIVE') {
+        // Pick upper-mid starters (roughly 25%–50% down the sorted list)
+        const targetIdx = Math.min(sorted.length - 1, Math.floor(sorted.length * 0.3) + (slotIdx % 3));
+        chosen = sorted[targetIdx];
+      } else if (tier === 'ROOKIE') {
+        // Pick lower-rated starters for a warmup matchup
+        const targetIdx = Math.min(sorted.length - 1, Math.floor(sorted.length * 0.68) + (slotIdx % 3));
+        chosen = sorted[targetIdx];
+      } else if (tier === 'RANDOM') {
+        const randIdx = Math.floor(seededValue(seed, slotIdx + 1) * Math.min(sorted.length, 18));
+        chosen = sorted[randIdx];
+      } else {
+        chosen = sorted[0];
+      }
+    }
+
+    if (!chosen) {
+      chosen = fallbackPool.find((p) => eligibleSet.has(getPos(p))) || null;
+    }
+
     if (chosen?.id) {
       usedIds.add(chosen.id);
     }
@@ -429,6 +496,7 @@ export default function MatchupSimulator({
 }) {
   const [savedOpponents, setSavedOpponents] = useState([]);
   const [selectedOpponentId, setSelectedOpponentId] = useState('cpu-all-pro');
+  const [mysteryCpuSeed, setMysteryCpuSeed] = useState(1);
   const [showOpponentRoster, setShowOpponentRoster] = useState(false);
   const [simResult, setSimResult] = useState(null);
   const [activeQuarterFilter, setActiveQuarterFilter] = useState('ALL');
@@ -542,41 +610,166 @@ export default function MatchupSimulator({
     };
   }, [user?.id, userLineup?.id, allPlayers, formationSlots]);
 
-  // Build full list of selectable opponents (CPU All-Pro, CPU Contenders, Saved Lineups)
+  // Build full list of selectable opponents (CPU Tiers, Pro Bowl, 2026 Contenders, Archetypes, Saved Lineups)
   const opponentOptions = useMemo(() => {
-    const allProSlots = buildCpuRoster(allPlayers, formationSlots, []);
-    const sfContenderSlots = buildCpuRoster(allPlayers, formationSlots, ['SF', 'DET', 'PHI']);
-    const bufContenderSlots = buildCpuRoster(allPlayers, formationSlots, ['BUF', 'KC', 'BAL']);
-
     const cpuPresets = [
+      // League & Difficulty Tiers
       {
         id: 'cpu-all-pro',
+        group: 'TIER',
         name: '2026 All-Pro CPU Squad (League Best)',
         shortName: '2026 All-Pro CPU',
         source: 'CPU',
-        badge: 'ALL-PRO CPU',
-        slots: allProSlots
+        badge: 'ALL-PRO CPU • 99 OVR',
+        slots: buildCpuRoster(allPlayers, formationSlots, { tier: 'ALL_PRO' })
       },
       {
-        id: 'cpu-contender-sf',
-        name: '2026 Contender CPU Squad — San Francisco 49ers + NFC',
-        shortName: 'SF 49ers & NFC Contenders',
+        id: 'cpu-probowl-afc',
+        group: 'TIER',
+        name: '2026 AFC Pro Bowl All-Stars CPU',
+        shortName: 'AFC Pro Bowl CPU',
         source: 'CPU',
-        badge: 'CONTENDER CPU',
-        slots: sfContenderSlots
+        badge: 'CONFERENCE ALL-STARS',
+        slots: buildCpuRoster(allPlayers, formationSlots, {
+          priorityTeams: ['BUF', 'KC', 'BAL', 'CIN', 'HOU', 'LAC', 'DEN', 'PIT', 'MIA']
+        })
+      },
+      {
+        id: 'cpu-probowl-nfc',
+        group: 'TIER',
+        name: '2026 NFC Pro Bowl All-Stars CPU',
+        shortName: 'NFC Pro Bowl CPU',
+        source: 'CPU',
+        badge: 'CONFERENCE ALL-STARS',
+        slots: buildCpuRoster(allPlayers, formationSlots, {
+          priorityTeams: ['SF', 'DET', 'PHI', 'MIN', 'GB', 'DAL', 'LAR', 'WAS', 'TB']
+        })
+      },
+      {
+        id: 'cpu-competitive',
+        group: 'TIER',
+        name: '2026 Competitive Playoff CPU (Balanced)',
+        shortName: 'Playoff CPU (Balanced)',
+        source: 'CPU',
+        badge: 'PRO DIFFICULTY',
+        slots: buildCpuRoster(allPlayers, formationSlots, { tier: 'COMPETITIVE' })
+      },
+      {
+        id: 'cpu-rookie',
+        group: 'TIER',
+        name: '2026 Rookie / Warmup CPU Squad',
+        shortName: 'Warmup CPU Squad',
+        source: 'CPU',
+        badge: 'ROOKIE DIFFICULTY',
+        slots: buildCpuRoster(allPlayers, formationSlots, { tier: 'ROOKIE' })
+      },
+
+      // Contender & Division CPU Squads
+      {
+        id: 'cpu-contender-sf',
+        group: 'CONTENDER',
+        name: 'San Francisco 49ers & NFC West Contenders CPU',
+        shortName: 'SF 49ers & NFC West',
+        source: 'CPU',
+        badge: 'NFC WEST CPU',
+        slots: buildCpuRoster(allPlayers, formationSlots, { priorityTeams: ['SF', 'LAR', 'SEA', 'ARI'] })
       },
       {
         id: 'cpu-contender-buf',
-        name: '2026 Contender CPU Squad — Buffalo Bills + AFC',
-        shortName: 'BUF Bills & AFC Contenders',
+        group: 'CONTENDER',
+        name: 'Buffalo Bills & AFC East Contenders CPU',
+        shortName: 'BUF Bills & AFC East',
         source: 'CPU',
-        badge: 'CONTENDER CPU',
-        slots: bufContenderSlots
+        badge: 'AFC EAST CPU',
+        slots: buildCpuRoster(allPlayers, formationSlots, { priorityTeams: ['BUF', 'MIA', 'NYJ', 'NE'] })
+      },
+      {
+        id: 'cpu-contender-kc',
+        group: 'CONTENDER',
+        name: 'Kansas City Chiefs & AFC West Contenders CPU',
+        shortName: 'KC Chiefs & AFC West',
+        source: 'CPU',
+        badge: 'AFC WEST CPU',
+        slots: buildCpuRoster(allPlayers, formationSlots, { priorityTeams: ['KC', 'LAC', 'DEN', 'LV'] })
+      },
+      {
+        id: 'cpu-contender-bal',
+        group: 'CONTENDER',
+        name: 'Baltimore Ravens & AFC North Contenders CPU',
+        shortName: 'BAL Ravens & AFC North',
+        source: 'CPU',
+        badge: 'AFC NORTH CPU',
+        slots: buildCpuRoster(allPlayers, formationSlots, { priorityTeams: ['BAL', 'CIN', 'PIT', 'CLE'] })
+      },
+      {
+        id: 'cpu-contender-det',
+        group: 'CONTENDER',
+        name: 'Detroit Lions & NFC North Contenders CPU',
+        shortName: 'DET Lions & NFC North',
+        source: 'CPU',
+        badge: 'NFC NORTH CPU',
+        slots: buildCpuRoster(allPlayers, formationSlots, { priorityTeams: ['DET', 'MIN', 'GB', 'CHI'] })
+      },
+      {
+        id: 'cpu-contender-phi',
+        group: 'CONTENDER',
+        name: 'Philadelphia Eagles & NFC East Contenders CPU',
+        shortName: 'PHI Eagles & NFC East',
+        source: 'CPU',
+        badge: 'NFC EAST CPU',
+        slots: buildCpuRoster(allPlayers, formationSlots, { priorityTeams: ['PHI', 'WAS', 'DAL', 'NYG'] })
+      },
+      {
+        id: 'cpu-contender-hou',
+        group: 'CONTENDER',
+        name: 'Houston Texans & AFC South Contenders CPU',
+        shortName: 'HOU Texans & AFC South',
+        source: 'CPU',
+        badge: 'AFC SOUTH CPU',
+        slots: buildCpuRoster(allPlayers, formationSlots, { priorityTeams: ['HOU', 'IND', 'JAX', 'TEN'] })
+      },
+      {
+        id: 'cpu-contender-tb',
+        group: 'CONTENDER',
+        name: 'Tampa Bay Buccaneers & NFC South Contenders CPU',
+        shortName: 'TB Bucs & NFC South',
+        source: 'CPU',
+        badge: 'NFC SOUTH CPU',
+        slots: buildCpuRoster(allPlayers, formationSlots, { priorityTeams: ['TB', 'ATL', 'NO', 'CAR'] })
+      },
+
+      // Playstyle Archetype CPUs
+      {
+        id: 'cpu-air-raid',
+        group: 'ARCHETYPE',
+        name: '2026 Air Raid Blitz CPU (High-Volume Passing)',
+        shortName: 'Air Raid Blitz CPU',
+        source: 'CPU',
+        badge: 'PASS-HEAVY CPU',
+        slots: buildCpuRoster(allPlayers, formationSlots, { tier: 'AIR_RAID' })
+      },
+      {
+        id: 'cpu-ground-pound',
+        group: 'ARCHETYPE',
+        name: '2026 Ground & Pound CPU (Smashmouth Run & D)',
+        shortName: 'Ground & Pound CPU',
+        source: 'CPU',
+        badge: 'RUN & DEFENSE CPU',
+        slots: buildCpuRoster(allPlayers, formationSlots, { tier: 'GROUND_POUND' })
+      },
+      {
+        id: 'cpu-mystery',
+        group: 'ARCHETYPE',
+        name: `2026 Mystery Draft CPU (Random Mix #${mysteryCpuSeed})`,
+        shortName: `Mystery Draft CPU #${mysteryCpuSeed}`,
+        source: 'CPU',
+        badge: 'RANDOMIZED CPU',
+        slots: buildCpuRoster(allPlayers, formationSlots, { tier: 'RANDOM', seed: mysteryCpuSeed })
       }
     ];
 
     return [...cpuPresets, ...savedOpponents];
-  }, [allPlayers, formationSlots, savedOpponents]);
+  }, [allPlayers, formationSlots, savedOpponents, mysteryCpuSeed]);
 
   const currentOpponent = useMemo(() => {
     return opponentOptions.find((o) => o.id === selectedOpponentId) || opponentOptions[0];
@@ -878,55 +1071,117 @@ export default function MatchupSimulator({
             padding: '0.85rem 1rem'
           }}
         >
-          <label
-            htmlFor="opponent-selector"
-            style={{
-              display: 'block',
-              fontSize: '0.7rem',
-              fontFamily: 'var(--font-tech)',
-              color: '#94a3b8',
-              fontWeight: 800,
-              marginBottom: 6
-            }}
-          >
-            SELECT OPPONENT SQUAD
-          </label>
-          <select
-            id="opponent-selector"
-            value={selectedOpponentId}
-            onChange={(e) => setSelectedOpponentId(e.target.value)}
-            style={{
-              width: '100%',
-              backgroundColor: '#0a0f1d',
-              color: '#f5f5f7',
-              border: '1px solid rgba(148, 163, 184, 0.35)',
-              borderRadius: 6,
-              padding: '8px 10px',
-              fontFamily: 'var(--font-tech)',
-              fontSize: '0.86rem',
-              fontWeight: 700,
-              cursor: 'pointer'
-            }}
-          >
-            <optgroup label="2026 CPU Franchises">
-              {opponentOptions
-                .filter((o) => o.source === 'CPU')
-                .map((opt) => (
-                  <option key={opt.id} value={opt.id}>
-                    {opt.name}
-                  </option>
-                ))}
-            </optgroup>
-            {savedOpponents.length > 0 && (
-              <optgroup label="Your Saved Custom Lineups">
-                {savedOpponents.map((opt) => (
-                  <option key={opt.id} value={opt.id}>
-                    {opt.name}
-                  </option>
-                ))}
-              </optgroup>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6, gap: 8 }}>
+            <label
+              htmlFor="opponent-selector"
+              style={{
+                fontSize: '0.7rem',
+                fontFamily: 'var(--font-tech)',
+                color: '#94a3b8',
+                fontWeight: 800
+              }}
+            >
+              SELECT OPPONENT SQUAD ({opponentOptions.length} AVAILABLE)
+            </label>
+            {currentOpponent?.badge && (
+              <span
+                style={{
+                  fontSize: '0.65rem',
+                  fontFamily: 'var(--font-tech)',
+                  fontWeight: 800,
+                  color: '#38bdf8',
+                  backgroundColor: 'rgba(56, 189, 248, 0.14)',
+                  border: '1px solid rgba(56, 189, 248, 0.3)',
+                  borderRadius: 4,
+                  padding: '1px 6px'
+                }}
+              >
+                {currentOpponent.badge}
+              </span>
             )}
-          </select>
+          </div>
+
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <select
+              id="opponent-selector"
+              value={selectedOpponentId}
+              onChange={(e) => setSelectedOpponentId(e.target.value)}
+              style={{
+                flex: 1,
+                backgroundColor: '#0a0f1d',
+                color: '#f5f5f7',
+                border: '1px solid rgba(148, 163, 184, 0.35)',
+                borderRadius: 6,
+                padding: '8px 10px',
+                fontFamily: 'var(--font-tech)',
+                fontSize: '0.86rem',
+                fontWeight: 700,
+                cursor: 'pointer'
+              }}
+            >
+              <optgroup label="League & Difficulty CPU Tiers">
+                {opponentOptions
+                  .filter((o) => o.group === 'TIER')
+                  .map((opt) => (
+                    <option key={opt.id} value={opt.id}>
+                      {opt.name}
+                    </option>
+                  ))}
+              </optgroup>
+              <optgroup label="2026 Divisional Contender CPUs">
+                {opponentOptions
+                  .filter((o) => o.group === 'CONTENDER')
+                  .map((opt) => (
+                    <option key={opt.id} value={opt.id}>
+                      {opt.name}
+                    </option>
+                  ))}
+              </optgroup>
+              <optgroup label="Playstyle Archetype CPUs">
+                {opponentOptions
+                  .filter((o) => o.group === 'ARCHETYPE')
+                  .map((opt) => (
+                    <option key={opt.id} value={opt.id}>
+                      {opt.name}
+                    </option>
+                  ))}
+              </optgroup>
+              {savedOpponents.length > 0 && (
+                <optgroup label="Your Saved Custom Lineups">
+                  {savedOpponents.map((opt) => (
+                    <option key={opt.id} value={opt.id}>
+                      {opt.name}
+                    </option>
+                  ))}
+                </optgroup>
+              )}
+            </select>
+
+            {selectedOpponentId === 'cpu-mystery' && (
+              <button
+                type="button"
+                onClick={() => setMysteryCpuSeed((s) => s + 1)}
+                title="Generate a new randomized CPU roster"
+                style={{
+                  backgroundColor: '#0a0f1d',
+                  color: '#38bdf8',
+                  border: '1px solid #38bdf8',
+                  borderRadius: 6,
+                  padding: '8px 10px',
+                  fontFamily: 'var(--font-tech)',
+                  fontSize: '0.75rem',
+                  fontWeight: 800,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap'
+                }}
+              >
+                <RotateCcw size={13} /> Reroll
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Kickoff Simulation CTA */}
