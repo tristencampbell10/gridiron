@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { 
   Shield, 
   Layers, 
@@ -17,12 +17,14 @@ import {
   ChevronDown, 
   Calendar,
   X,
-  FileSpreadsheet
+  FileSpreadsheet,
+  Zap
 } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from '../supabaseClient';
 import { ALL_32_TEAMS_PLAYERS } from '../data/all32TeamsRoster';
 import { NFL_DEFENSIVE_PLAYERS } from '../data/defensivePlayers';
 import { CURRENT_SEASON_INFO } from '../data/nfl2026Data';
+import MatchupSimulator from '../components/MatchupSimulator';
 
 // All players pooled
 const ALL_PLAYERS_POOL = [...ALL_32_TEAMS_PLAYERS, ...NFL_DEFENSIVE_PLAYERS];
@@ -142,6 +144,7 @@ function getInitialPresetLineup(presetKey) {
 }
 
 export default function Lineups({ user, onOpenAuth }) {
+  const [allPlayers, setAllPlayers] = useState(ALL_PLAYERS_POOL);
   const [selectedPresetKey, setSelectedPresetKey] = useState('Offensive Spread 11');
   const [lineupSlots, setLineupSlots] = useState(() => getInitialPresetLineup('Offensive Spread 11'));
   const [lineupName, setLineupName] = useState('Championship Roster 2026');
@@ -151,12 +154,109 @@ export default function Lineups({ user, onOpenAuth }) {
   const [isFinalized, setIsFinalized] = useState(false);
   const [finalizing, setFinalizing] = useState(false);
   const [saveStatus, setSaveStatus] = useState(null); // 'saved' | 'error' | null
+  const [showSimulator, setShowSimulator] = useState(false);
+  const simulatorRef = useRef(null);
 
   // Slot picker modal state
   const [activeSlotModal, setActiveSlotModal] = useState(null); // slot definition or null
   const [pickerSearch, setPickerSearch] = useState('');
 
   const currentPreset = FORMATION_PRESETS[selectedPresetKey];
+
+  // Fetch 2026 active players from Supabase when configured, merged with local defensive/K/DST pool
+  useEffect(() => {
+    let active = true;
+    async function loadSupabasePlayers() {
+      if (!isSupabaseConfigured) return;
+      try {
+        const { data, error } = await supabase
+          .from('players')
+          .select(`
+            id,
+            name,
+            position,
+            team,
+            jersey_number,
+            status,
+            player_season_stats (
+              season_year,
+              games_played,
+              passing_yards,
+              passing_tds,
+              completions,
+              attempts,
+              passer_rating,
+              rushing_yards,
+              rushing_tds,
+              receptions,
+              receiving_yards,
+              receiving_tds,
+              player_performance_rating
+            )
+          `);
+
+        if (!active || error || !Array.isArray(data) || data.length === 0) return;
+
+        const mapped = data.map((p) => {
+          const stats = p.player_season_stats?.[0] || {};
+          const localMatch = ALL_PLAYERS_POOL.find(
+            (lp) => lp.name.toLowerCase() === p.name.toLowerCase() || lp.id === p.id
+          );
+
+          return {
+            id: p.id,
+            name: p.name,
+            avatar_url: p.avatar_url || localMatch?.avatar_url || null,
+            number: `#${p.jersey_number || (localMatch?.jersey_number ?? 0)}`,
+            jersey_number: p.jersey_number || (localMatch?.jersey_number ?? 0),
+            pos: p.position,
+            position: p.position,
+            team: localMatch?.team || p.team,
+            teamAbbr: p.team,
+            status: p.status || 'ACTIVE',
+            gamesPlayed: stats.games_played || localMatch?.gamesPlayed || 9,
+            player_performance_rating: Number(stats.player_performance_rating ?? localMatch?.player_performance_rating ?? 4.0),
+            rating: localMatch?.rating || (Number(stats.player_performance_rating || 4.0) * 20).toFixed(1),
+            salary: localMatch?.salary || 7500,
+            passYds: stats.passing_yards ?? localMatch?.passYds ?? 0,
+            passTd: stats.passing_tds ?? localMatch?.passTd ?? 0,
+            int: localMatch?.int ?? 0,
+            rushYds: stats.rushing_yards ?? localMatch?.rushYds ?? 0,
+            rushTd: stats.rushing_tds ?? localMatch?.rushTd ?? 0,
+            rec: stats.receptions ?? localMatch?.rec ?? 0,
+            recYds: stats.receiving_yards ?? localMatch?.recYds ?? 0,
+            recTd: stats.receiving_tds ?? localMatch?.recTd ?? 0,
+            fantasyPts: localMatch?.fantasyPts || 140.0
+          };
+        });
+
+        const combined = [...mapped];
+        ALL_PLAYERS_POOL.forEach((lp) => {
+          if (!combined.some((c) => c.name.toLowerCase() === lp.name.toLowerCase())) {
+            combined.push(lp);
+          }
+        });
+
+        if (active) {
+          setAllPlayers(combined);
+        }
+      } catch (err) {
+        console.warn('Supabase player pool load notice:', err);
+      }
+    }
+
+    loadSupabasePlayers();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const handleOpenSimulator = () => {
+    setShowSimulator(true);
+    setTimeout(() => {
+      simulatorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 60);
+  };
 
   // Handle Preset Switch
   const handleSelectPreset = (key) => {
@@ -322,7 +422,7 @@ export default function Lineups({ user, onOpenAuth }) {
         eligible: currentPreset.slots[idx]?.eligible,
         status: item.player ? (isPlayerEligible(item.player, currentPreset.slots[idx]) ? 'VALID' : 'INVALID_POSITION') : 'EMPTY'
       }))
-    }, ALL_PLAYERS_POOL);
+    }, allPlayers);
   };
 
   return (
@@ -363,7 +463,7 @@ export default function Lineups({ user, onOpenAuth }) {
           </p>
         </div>
 
-        {/* Action Controls: Export CSV & Finalize */}
+        {/* Action Controls: Export CSV, Simulate Matchup & Finalize */}
         <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
           <button
             type="button"
@@ -386,6 +486,32 @@ export default function Lineups({ user, onOpenAuth }) {
           >
             <Download size={16} style={{ color: 'var(--headline-gold)' }} />
             Export Sanitized CSV
+          </button>
+
+          <button
+            type="button"
+            disabled={!isFinalized && totals.filledCount < 11}
+            onClick={handleOpenSimulator}
+            style={{
+              backgroundColor: showSimulator ? 'rgba(56, 189, 248, 0.16)' : 'var(--card-slate)',
+              border: '1px solid #38bdf8',
+              color: '#38bdf8',
+              padding: '8px 16px',
+              borderRadius: 6,
+              fontFamily: 'var(--font-tech)',
+              fontSize: '0.85rem',
+              fontWeight: 800,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 8,
+              cursor: (!isFinalized && totals.filledCount < 11) ? 'not-allowed' : 'pointer',
+              opacity: (!isFinalized && totals.filledCount < 11) ? 0.55 : 1,
+              transition: 'all 0.15s ease',
+              boxShadow: showSimulator ? '0 0 14px rgba(56, 189, 248, 0.25)' : 'none'
+            }}
+          >
+            <Zap size={16} />
+            Simulate Matchup
           </button>
 
           {isFinalized ? (
@@ -779,6 +905,27 @@ export default function Lineups({ user, onOpenAuth }) {
         })}
       </div>
 
+      {/* Head-to-Head Matchup Simulator Section */}
+      <div ref={simulatorRef}>
+        {showSimulator && (
+          <MatchupSimulator
+            userLineup={{
+              id: lineupId,
+              name: lineupName,
+              formation: selectedPresetKey,
+              personal_rating: personalRating,
+              isFinalized,
+              slots: lineupSlots
+            }}
+            userPlayers={lineupSlots.map((s) => s.player).filter(Boolean)}
+            allPlayers={allPlayers}
+            formationSlots={currentPreset.slots}
+            user={user}
+            onClose={() => setShowSimulator(false)}
+          />
+        )}
+      </div>
+
       {/* Interactive Slot Assignment Modal */}
       {activeSlotModal && (
         <div style={{
@@ -865,7 +1012,7 @@ export default function Lineups({ user, onOpenAuth }) {
 
             {/* Eligible Player List */}
             <div style={{ padding: '0.5rem 1.25rem', overflowY: 'auto', flex: 1 }}>
-              {ALL_PLAYERS_POOL
+              {allPlayers
                 .filter(p => isPlayerEligible(p, activeSlotModal.rule))
                 .filter(p => {
                   if (!pickerSearch.trim()) return true;
