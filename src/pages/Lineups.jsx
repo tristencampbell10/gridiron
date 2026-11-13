@@ -18,13 +18,16 @@ import {
   Calendar,
   X,
   FileSpreadsheet,
-  Zap
+  Zap,
+  LayoutList,
+  Compass
 } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from '../supabaseClient';
 import { ALL_32_TEAMS_PLAYERS } from '../data/all32TeamsRoster';
 import { NFL_DEFENSIVE_PLAYERS } from '../data/defensivePlayers';
 import { CURRENT_SEASON_INFO } from '../data/nfl2026Data';
 import MatchupSimulator from '../components/MatchupSimulator';
+import TacticalFieldDiagram from '../components/TacticalFieldDiagram';
 
 // All players pooled
 const ALL_PLAYERS_POOL = [...ALL_32_TEAMS_PLAYERS, ...NFL_DEFENSIVE_PLAYERS];
@@ -91,23 +94,31 @@ export const FORMATION_PRESETS = {
 };
 
 // Initial default starter assignments for presets
+function pickStarter(id, fallbackPos) {
+  return (
+    ALL_PLAYERS_POOL.find((p) => p.id === id) ||
+    ALL_PLAYERS_POOL.find((p) => (p.pos || p.position) === fallbackPos) ||
+    null
+  );
+}
+
 function getInitialPresetLineup(presetKey) {
   const formation = FORMATION_PRESETS[presetKey];
   if (!formation) return [];
 
   if (presetKey === 'Offensive Spread 11') {
     return [
-      { slotId: 'slot-1', slotName: 'QB', player: ALL_PLAYERS_POOL.find(p => p.id === 'patrick-mahomes') },
-      { slotId: 'slot-2', slotName: 'RB', player: ALL_PLAYERS_POOL.find(p => p.id === 'kenneth-walker-iii') },
-      { slotId: 'slot-3', slotName: 'WR1', player: ALL_PLAYERS_POOL.find(p => p.id === 'ja-marr-chase') },
-      { slotId: 'slot-4', slotName: 'WR2', player: ALL_PLAYERS_POOL.find(p => p.id === 'justin-jefferson') },
-      { slotId: 'slot-5', slotName: 'WR3', player: ALL_PLAYERS_POOL.find(p => p.id === 'amon-ra-st-brown') },
-      { slotId: 'slot-6', slotName: 'WR4', player: ALL_PLAYERS_POOL.find(p => p.id === 'cee-dee-lamb') },
-      { slotId: 'slot-7', slotName: 'TE', player: ALL_PLAYERS_POOL.find(p => p.id === 'travis-kelce') },
-      { slotId: 'slot-8', slotName: 'FLEX1', player: ALL_PLAYERS_POOL.find(p => p.id === 'saquon-barkley') },
-      { slotId: 'slot-9', slotName: 'FLEX2', player: ALL_PLAYERS_POOL.find(p => p.id === 'derrick-henry') },
-      { slotId: 'slot-10', slotName: 'K', player: ALL_PLAYERS_POOL.find(p => p.id === 'justin-tucker') },
-      { slotId: 'slot-11', slotName: 'DST', player: ALL_PLAYERS_POOL.find(p => p.id === 'chiefs-dst') },
+      { slotId: 'slot-1', slotName: 'QB', player: pickStarter('patrick-mahomes', 'QB') },
+      { slotId: 'slot-2', slotName: 'RB', player: pickStarter('kenneth-walker-iii', 'RB') },
+      { slotId: 'slot-3', slotName: 'WR1', player: pickStarter('ja-marr-chase', 'WR') },
+      { slotId: 'slot-4', slotName: 'WR2', player: pickStarter('justin-jefferson', 'WR') },
+      { slotId: 'slot-5', slotName: 'WR3', player: pickStarter('amon-ra-st-brown', 'WR') },
+      { slotId: 'slot-6', slotName: 'WR4', player: pickStarter('ceedee-lamb', 'WR') },
+      { slotId: 'slot-7', slotName: 'TE', player: pickStarter('travis-kelce', 'TE') },
+      { slotId: 'slot-8', slotName: 'FLEX1', player: pickStarter('saquon-barkley', 'RB') },
+      { slotId: 'slot-9', slotName: 'FLEX2', player: pickStarter('derrick-henry', 'RB') },
+      { slotId: 'slot-10', slotName: 'K', player: pickStarter('justin-tucker', 'K') },
+      { slotId: 'slot-11', slotName: 'DST', player: pickStarter('chiefs-dst', 'DST') },
     ];
   }
 
@@ -143,17 +154,29 @@ function getInitialPresetLineup(presetKey) {
   ];
 }
 
+const generateLineupUuid = () => {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === 'x' ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+};
+
 export default function Lineups({ user, onOpenAuth }) {
   const [allPlayers, setAllPlayers] = useState(ALL_PLAYERS_POOL);
   const [selectedPresetKey, setSelectedPresetKey] = useState('Offensive Spread 11');
   const [lineupSlots, setLineupSlots] = useState(() => getInitialPresetLineup('Offensive Spread 11'));
   const [lineupName, setLineupName] = useState('Championship Roster 2026');
-  const [lineupId, setLineupId] = useState(() => `lineup_${Date.now()}`);
+  const [lineupId, setLineupId] = useState(() => generateLineupUuid());
   const [personalRating, setPersonalRating] = useState(5); // 1 to 5 stars
   const [hoverRating, setHoverRating] = useState(0);
   const [isFinalized, setIsFinalized] = useState(false);
   const [finalizing, setFinalizing] = useState(false);
   const [saveStatus, setSaveStatus] = useState(null); // 'saved' | 'error' | null
+  const [viewMode, setViewMode] = useState('list'); // 'list' | 'field'
   const [showSimulator, setShowSimulator] = useState(false);
   const simulatorRef = useRef(null);
 
@@ -360,6 +383,8 @@ export default function Lineups({ user, onOpenAuth }) {
     setFinalizing(true);
 
     try {
+      await handleSaveLineup(personalRating);
+
       if (isSupabaseConfigured) {
         // Invoke official stored procedure as requested
         const { data, error } = await supabase.rpc('finalize_lineup', { 
@@ -492,6 +517,11 @@ export default function Lineups({ user, onOpenAuth }) {
             type="button"
             disabled={!isFinalized && totals.filledCount < 11}
             onClick={handleOpenSimulator}
+            title={
+              !isFinalized && totals.filledCount < 11
+                ? `Fill all 11 roster slots (${totals.filledCount}/11) to simulate`
+                : 'Simulate a head-to-head matchup with this 11-player lineup'
+            }
             style={{
               backgroundColor: showSimulator ? 'rgba(56, 189, 248, 0.16)' : 'var(--card-slate)',
               border: '1px solid #38bdf8',
@@ -511,7 +541,9 @@ export default function Lineups({ user, onOpenAuth }) {
             }}
           >
             <Zap size={16} />
-            Simulate Matchup
+            {!isFinalized && totals.filledCount < 11
+              ? `Simulate Matchup (${totals.filledCount}/11)`
+              : 'Simulate Matchup'}
           </button>
 
           {isFinalized ? (
@@ -747,7 +779,108 @@ export default function Lineups({ user, onOpenAuth }) {
         </div>
       </div>
 
-      {/* 11 Interactive Slot Cards Grid */}
+      {/* View Mode Toggle Switch (List View vs. 2D Field View) */}
+      <div
+        style={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '0.75rem',
+          marginBottom: '1rem'
+        }}
+      >
+        <div
+          style={{
+            fontFamily: 'var(--font-tech)',
+            fontSize: '0.82rem',
+            fontWeight: 800,
+            color: 'var(--text-secondary)',
+            letterSpacing: '0.04em'
+          }}
+        >
+          ACTIVE 11-SLOT DEPTH CHART • {selectedPresetKey.toUpperCase()}
+        </div>
+
+        <div
+          role="tablist"
+          aria-label="Roster View Mode"
+          style={{
+            display: 'inline-flex',
+            backgroundColor: '#0a0f1d',
+            border: '1px solid var(--card-border)',
+            borderRadius: 8,
+            padding: 3,
+            gap: 4
+          }}
+        >
+          <button
+            type="button"
+            role="tab"
+            aria-selected={viewMode === 'list'}
+            onClick={() => setViewMode('list')}
+            style={{
+              backgroundColor: viewMode === 'list' ? '#38bdf8' : 'transparent',
+              color: viewMode === 'list' ? '#0a0f1d' : '#cbd5e1',
+              border: 'none',
+              borderRadius: 6,
+              padding: '6px 14px',
+              fontFamily: 'var(--font-tech)',
+              fontSize: '0.8rem',
+              fontWeight: 800,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+              cursor: 'pointer',
+              transition: 'all 0.15s ease'
+            }}
+          >
+            <LayoutList size={15} />
+            List View
+          </button>
+
+          <button
+            type="button"
+            role="tab"
+            aria-selected={viewMode === 'field'}
+            onClick={() => setViewMode('field')}
+            style={{
+              backgroundColor: viewMode === 'field' ? '#38bdf8' : 'transparent',
+              color: viewMode === 'field' ? '#0a0f1d' : '#cbd5e1',
+              border: 'none',
+              borderRadius: 6,
+              padding: '6px 14px',
+              fontFamily: 'var(--font-tech)',
+              fontSize: '0.8rem',
+              fontWeight: 800,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+              cursor: 'pointer',
+              transition: 'all 0.15s ease'
+            }}
+          >
+            <Compass size={15} />
+            2D Field View
+          </button>
+        </div>
+      </div>
+
+      {/* 11-Slot Roster Container: List View or 2D Tactical Field View */}
+      {viewMode === 'field' ? (
+        <TacticalFieldDiagram
+          lineupName={lineupName}
+          formation={selectedPresetKey}
+          slots={lineupSlots}
+          avgRating={totals.avgRating}
+          isFinalized={isFinalized}
+          onSlotClick={(slotIndex) => {
+            if (!isFinalized && currentPreset.slots[slotIndex]) {
+              setActiveSlotModal({ slotIndex, rule: currentPreset.slots[slotIndex] });
+            }
+          }}
+        />
+      ) : (
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', marginBottom: '2rem' }}>
         {lineupSlots.map((item, index) => {
           const slotRule = currentPreset.slots[index];
@@ -904,6 +1037,7 @@ export default function Lineups({ user, onOpenAuth }) {
           );
         })}
       </div>
+      )}
 
       {/* Head-to-Head Matchup Simulator Section */}
       <div ref={simulatorRef}>

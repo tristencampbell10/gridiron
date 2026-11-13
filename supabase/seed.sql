@@ -289,3 +289,36 @@ BEGIN
   RETURN result;
 END;
 $$;
+
+-- 4. MATCHUP HISTORY TABLE & RLS POLICIES
+CREATE TABLE IF NOT EXISTS public.matchup_history (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  lineup_id UUID REFERENCES public.custom_lineups(id) ON DELETE SET NULL,
+  lineup_name TEXT NOT NULL,
+  opponent_name TEXT NOT NULL,
+  user_score INT NOT NULL,
+  opponent_score INT NOT NULL,
+  result TEXT NOT NULL CHECK (result IN ('WIN', 'LOSS', 'TIE')),
+  mvp_player_id UUID REFERENCES public.players(id) ON DELETE SET NULL,
+  mvp_player_name TEXT,
+  mvp_stat_line TEXT,
+  box_score JSONB NOT NULL DEFAULT '{}'::jsonb,
+  play_by_play JSONB NOT NULL DEFAULT '[]'::jsonb,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.matchup_history ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can view their own matchup history"
+  ON public.matchup_history FOR SELECT
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert their own matchup history"
+  ON public.matchup_history FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete their own matchup history"
+  ON public.matchup_history FOR DELETE
+  USING (auth.uid() = user_id);
+

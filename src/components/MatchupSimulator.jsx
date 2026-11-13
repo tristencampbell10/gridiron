@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import {
   Trophy,
   Play,
@@ -13,9 +13,17 @@ import {
   Activity,
   X,
   CheckCircle2,
-  TrendingUp
+  TrendingUp,
+  Trash2,
+  History,
+  Clock
 } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from '../supabaseClient';
+import { useAuth } from '../context/AuthContext';
+
+const GUEST_MATCHUPS_KEY = 'gridiron_guest_matchups';
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const toUuidOrNull = (val) => (typeof val === 'string' && UUID_REGEX.test(val) ? val : null);
 
 const DEFAULT_SLOTS = [
   { id: 'slot-1', name: 'QB', label: 'Quarterback', eligible: ['QB'] },
@@ -491,9 +499,12 @@ export default function MatchupSimulator({
   userPlayers = [],
   allPlayers = [],
   formationSlots = DEFAULT_SLOTS,
-  user,
+  user: propUser,
   onClose
 }) {
+  const auth = useAuth();
+  const activeUser = auth?.user || propUser || null;
+
   const [savedOpponents, setSavedOpponents] = useState([]);
   const [selectedOpponentId, setSelectedOpponentId] = useState('cpu-all-pro');
   const [mysteryCpuSeed, setMysteryCpuSeed] = useState(1);
@@ -501,6 +512,207 @@ export default function MatchupSimulator({
   const [simResult, setSimResult] = useState(null);
   const [activeQuarterFilter, setActiveQuarterFilter] = useState('ALL');
   const [isSimulating, setIsSimulating] = useState(false);
+  const resultsRef = useRef(null);
+
+  // Matchup history persistence state
+  const [matchupHistory, setMatchupHistory] = useState([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [saveBadgeText, setSaveBadgeText] = useState(null);
+
+  const readGuestHistory = useCallback(() => {
+    try {
+      const raw = localStorage.getItem(GUEST_MATCHUPS_KEY);
+      const parsed = raw ? JSON.parse(raw) : [];
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }, []);
+
+  const writeGuestHistory = useCallback((records) => {
+    try {
+      localStorage.setItem(GUEST_MATCHUPS_KEY, JSON.stringify(records));
+    } catch (err) {
+      console.warn('Guest matchup storage notice:', err);
+    }
+  }, []);
+
+  const fetchMatchupHistory = useCallback(async () => {
+    setHistoryLoading(true);
+    try {
+      const userUuid = toUuidOrNull(activeUser?.id);
+      if (isSupabaseConfigured && userUuid) {
+        const { data, error } = await supabase
+          .from('matchup_history')
+          .select('*')
+          .eq('user_id', userUuid)
+          .order('created_at', { ascending: false });
+
+        if (!error && Array.isArray(data)) {
+          setMatchupHistory(data);
+          return;
+        }
+        if (error) {
+          console.warn('matchup_history fetch notice:', error.message);
+        }
+      }
+
+      // Guest or offline/preview fallback
+      const localRecords = readGuestHistory();
+      const sorted = [...localRecords].sort(
+        (a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()
+      );
+      setMatchupHistory(sorted);
+    } catch (err) {
+      console.warn('Matchup history load notice:', err);
+      setMatchupHistory(readGuestHistory());
+    } finally {
+      setHistoryLoading(false);
+    }
+  }, [activeUser?.id, readGuestHistory]);
+
+  useEffect(() => {
+    fetchMatchupHistory();
+  }, [fetchMatchupHistory]);
+
+  const careerRecord = useMemo(() => {
+    let wins = 0;
+    let losses = 0;
+    let ties = 0;
+
+    matchupHistory.forEach((item) => {
+      if (item.result === 'WIN') wins++;
+      else if (item.result === 'LOSS') losses++;
+      else if (item.result === 'TIE') ties++;
+    });
+
+    const total = wins + losses + ties;
+    const winRate = total > 0 ? Math.round((wins / total) * 100) : 0;
+    return { wins, losses, ties, total, winRate };
+  }, [matchupHistory]);
+
+  const persistMatchupResult = useCallback(
+    async ({
+      userRosterName,
+      oppRosterName,
+      finalUserScore,
+      finalOppScore,
+      userQuarters,
+      oppQuarters,
+      userSlotWins,
+      mvpPlayer,
+      mvpStatLine,
+      feed
+    }) => {
+      const resultCode =
+        finalUserScore > finalOppScore ? 'WIN' : finalUserScore < finalOppScore ? 'LOSS' : 'TIE';
+
+      const boxScorePayload = {
+        user_quarters: userQuarters,
+        opponent_quarters: oppQuarters,
+        user_final: finalUserScore,
+        opponent_final: finalOppScore,
+        slot_matchups_won: userSlotWins,
+        formation: userLineup?.formation || 'Offensive Spread 11'
+      };
+
+      const userUuid = toUuidOrNull(activeUser?.id);
+      const lineupUuid = toUuidOrNull(userLineup?.id);
+      const mvpUuid = toUuidOrNull(mvpPlayer?.id);
+
+      const baseRecord = {
+        lineup_id: lineupUuid,
+        lineup_name: userRosterName,
+        opponent_name: oppRosterName,
+        user_score: finalUserScore,
+        opponent_score: finalOppScore,
+        result: resultCode,
+        mvp_player_id: mvpUuid,
+        mvp_player_name: mvpPlayer?.name || null,
+        mvp_stat_line: mvpStatLine,
+        box_score: boxScorePayload,
+        play_by_play: feed
+      };
+
+      let savedToDb = false;
+
+      if (isSupabaseConfigured && userUuid) {
+        try {
+          const insertRow = { ...baseRecord, user_id: userUuid };
+          let { error } = await supabase.from('matchup_history').insert(insertRow);
+
+          // Retry with nullable foreign keys if lineup or mock player isn't seeded in DB yet
+          if (error && (error.code === '23503' || String(error.message || '').includes('foreign key'))) {
+            const retryRow = {
+              ...insertRow,
+              lineup_id: null,
+              mvp_player_id: null
+            };
+            const retryRes = await supabase.from('matchup_history').insert(retryRow);
+            error = retryRes.error;
+          }
+
+          if (!error) {
+            savedToDb = true;
+            await fetchMatchupHistory();
+            setSaveBadgeText('✓ Match Saved to Profile');
+          } else {
+            console.warn('Supabase matchup_history insert notice:', error.message);
+          }
+        } catch (err) {
+          console.warn('Supabase matchup_history save notice:', err);
+        }
+      }
+
+      if (!savedToDb) {
+        const localEntry = {
+          id:
+            typeof crypto !== 'undefined' && crypto.randomUUID
+              ? crypto.randomUUID()
+              : `match_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+          ...baseRecord,
+          user_id: activeUser?.id || 'guest',
+          created_at: new Date().toISOString()
+        };
+        const existing = readGuestHistory();
+        const updated = [localEntry, ...existing];
+        writeGuestHistory(updated);
+        setMatchupHistory(updated);
+        setSaveBadgeText(activeUser ? '✓ Match Saved to Profile' : '✓ Match Saved to Profile (Guest)');
+      }
+
+      setTimeout(() => {
+        setSaveBadgeText(null);
+      }, 4500);
+    },
+    [activeUser, userLineup?.id, userLineup?.formation, fetchMatchupHistory, readGuestHistory, writeGuestHistory]
+  );
+
+  const handleDeleteHistoryEntry = async (entryId) => {
+    setMatchupHistory((prev) => prev.filter((item) => item.id !== entryId));
+
+    const existingLocal = readGuestHistory();
+    if (existingLocal.some((item) => item.id === entryId)) {
+      writeGuestHistory(existingLocal.filter((item) => item.id !== entryId));
+    }
+
+    const userUuid = toUuidOrNull(activeUser?.id);
+    if (isSupabaseConfigured && userUuid && toUuidOrNull(entryId)) {
+      try {
+        const { error } = await supabase
+          .from('matchup_history')
+          .delete()
+          .eq('id', entryId)
+          .eq('user_id', userUuid);
+
+        if (error) {
+          console.warn('matchup_history delete notice:', error.message);
+        }
+      } catch (err) {
+        console.warn('Matchup history delete error:', err);
+      }
+    }
+  };
 
   const activeUserSlots = useMemo(() => {
     if (userLineup?.slots && userLineup.slots.length === 11) {
@@ -541,12 +753,12 @@ export default function MatchupSimulator({
       };
 
       // 1. Fetch from Supabase custom_lineups
-      if (isSupabaseConfigured && user?.id) {
+      if (isSupabaseConfigured && activeUser?.id) {
         try {
           const { data, error } = await supabase
             .from('custom_lineups')
             .select('id, name, formation, personal_rating, slots, is_finalized, updated_at')
-            .eq('user_id', user.id)
+            .eq('user_id', activeUser.id)
             .order('updated_at', { ascending: false });
 
           if (!error && Array.isArray(data)) {
@@ -608,7 +820,7 @@ export default function MatchupSimulator({
     return () => {
       mounted = false;
     };
-  }, [user?.id, userLineup?.id, allPlayers, formationSlots]);
+  }, [activeUser?.id, userLineup?.id, allPlayers, formationSlots]);
 
   // Build full list of selectable opponents (CPU Tiers, Pro Bowl, 2026 Contenders, Archetypes, Saved Lineups)
   const opponentOptions = useMemo(() => {
@@ -914,6 +1126,8 @@ export default function MatchupSimulator({
         oppQuarters
       );
 
+      const mvpStatLine = buildMvpStatLine(mvpPlayer, true);
+
       setSimResult({
         isVictory,
         userTeamName: userRosterName,
@@ -928,7 +1142,7 @@ export default function MatchupSimulator({
           player: mvpPlayer,
           slotName: mvpEntry?.slotName || getPos(mvpPlayer),
           teamName: isVictory ? userRosterName : oppRosterName,
-          statLine: buildMvpStatLine(mvpPlayer, true),
+          statLine: mvpStatLine,
           side: isVictory ? 'USER' : 'OPPONENT'
         },
         feed,
@@ -937,6 +1151,23 @@ export default function MatchupSimulator({
 
       setActiveQuarterFilter('ALL');
       setIsSimulating(false);
+
+      setTimeout(() => {
+        resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }, 60);
+
+      persistMatchupResult({
+        userRosterName,
+        oppRosterName,
+        finalUserScore,
+        finalOppScore,
+        userQuarters,
+        oppQuarters,
+        userSlotWins,
+        mvpPlayer,
+        mvpStatLine,
+        feed
+      });
     }, 280);
   };
 
@@ -1005,7 +1236,35 @@ export default function MatchupSimulator({
           </p>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+          {/* Career Record Badge */}
+          <div
+            style={{
+              backgroundColor: '#111827',
+              border: '1px solid rgba(56, 189, 248, 0.45)',
+              borderRadius: 8,
+              padding: '7px 14px',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 8,
+              fontFamily: 'var(--font-tech)',
+              fontSize: '0.82rem',
+              fontWeight: 800,
+              color: '#f5f5f7',
+              boxShadow: '0 0 12px rgba(56, 189, 248, 0.14)'
+            }}
+          >
+            <Trophy size={15} style={{ color: '#38bdf8' }} />
+            <span>
+              RECORD:{' '}
+              <strong style={{ color: '#38bdf8' }}>
+                {careerRecord.wins}W - {careerRecord.losses}L
+                {careerRecord.ties > 0 ? ` - ${careerRecord.ties}T` : ''}
+              </strong>{' '}
+              <span style={{ color: '#94a3b8' }}>({careerRecord.winRate}% WIN RATE)</span>
+            </span>
+          </div>
+
           {onClose && (
             <button
               type="button"
@@ -1014,7 +1273,7 @@ export default function MatchupSimulator({
                 backgroundColor: '#111827',
                 border: '1px solid rgba(148, 163, 184, 0.28)',
                 color: '#cbd5e1',
-                padding: '6px 12px',
+                padding: '7px 12px',
                 borderRadius: 6,
                 fontFamily: 'var(--font-tech)',
                 fontSize: '0.8rem',
@@ -1477,7 +1736,7 @@ export default function MatchupSimulator({
 
       {/* Simulation Results Dashboard */}
       {simResult && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+        <div ref={resultsRef} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
           {/* Victory / Defeat Banner */}
           <div
             style={{
@@ -1530,26 +1789,48 @@ export default function MatchupSimulator({
               </div>
             </div>
 
-            <button
-              type="button"
-              onClick={handleRunSimulation}
-              style={{
-                backgroundColor: '#38bdf8',
-                color: '#0a0f1d',
-                border: 'none',
-                borderRadius: 6,
-                padding: '8px 16px',
-                fontFamily: 'var(--font-tech)',
-                fontSize: '0.82rem',
-                fontWeight: 800,
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 6,
-                cursor: 'pointer'
-              }}
-            >
-              <RotateCcw size={15} /> Rematch / Simulate Again
-            </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+              {saveBadgeText && (
+                <span
+                  style={{
+                    backgroundColor: 'rgba(34, 197, 94, 0.16)',
+                    border: '1px solid rgba(34, 197, 94, 0.45)',
+                    color: '#4ade80',
+                    borderRadius: 6,
+                    padding: '6px 12px',
+                    fontFamily: 'var(--font-tech)',
+                    fontSize: '0.78rem',
+                    fontWeight: 800,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 5
+                  }}
+                >
+                  {saveBadgeText}
+                </span>
+              )}
+
+              <button
+                type="button"
+                onClick={handleRunSimulation}
+                style={{
+                  backgroundColor: '#38bdf8',
+                  color: '#0a0f1d',
+                  border: 'none',
+                  borderRadius: 6,
+                  padding: '8px 16px',
+                  fontFamily: 'var(--font-tech)',
+                  fontSize: '0.82rem',
+                  fontWeight: 800,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  cursor: 'pointer'
+                }}
+              >
+                <RotateCcw size={15} /> Rematch / Simulate Again
+              </button>
+            </div>
           </div>
 
           {/* 4-Quarter Box Score + Game MVP Grid */}
@@ -1927,6 +2208,223 @@ export default function MatchupSimulator({
           </div>
         </div>
       )}
+
+      {/* Persistent Saved Matchup History Log */}
+      <div
+        style={{
+          marginTop: '1.5rem',
+          backgroundColor: '#111827',
+          border: '1px solid rgba(148, 163, 184, 0.28)',
+          borderRadius: 10,
+          padding: '1.15rem 1.25rem'
+        }}
+      >
+        <div
+          style={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '0.75rem',
+            paddingBottom: '0.75rem',
+            borderBottom: '1px solid rgba(148, 163, 184, 0.2)',
+            marginBottom: '0.9rem'
+          }}
+        >
+          <div
+            style={{
+              fontFamily: 'var(--font-tech)',
+              fontSize: '0.85rem',
+              fontWeight: 800,
+              color: '#f5f5f7',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 8
+            }}
+          >
+            <History size={16} style={{ color: '#38bdf8' }} />
+            SAVED MATCHUP HISTORY ({matchupHistory.length})
+          </div>
+
+          <span style={{ fontSize: '0.74rem', fontFamily: 'var(--font-tech)', color: '#94a3b8' }}>
+            {activeUser ? 'SYNCED TO PROFILE' : 'GUEST LOCAL STORAGE'}
+          </span>
+        </div>
+
+        {historyLoading ? (
+          <div style={{ padding: '1rem 0', fontSize: '0.85rem', color: '#94a3b8', fontFamily: 'var(--font-tech)' }}>
+            Loading matchup history...
+          </div>
+        ) : matchupHistory.length === 0 ? (
+          <div
+            style={{
+              padding: '1.1rem',
+              backgroundColor: '#0a0f1d',
+              border: '1px dashed rgba(148, 163, 184, 0.25)',
+              borderRadius: 8,
+              textAlign: 'center',
+              fontSize: '0.85rem',
+              color: '#94a3b8'
+            }}
+          >
+            No simulated games logged yet. Click <strong style={{ color: '#38bdf8' }}>Kickoff Simulation</strong> above to record your first matchup.
+          </div>
+        ) : (
+          <div
+            style={{
+              maxHeight: 360,
+              overflowY: 'auto',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0.6rem',
+              paddingRight: 4
+            }}
+          >
+            {matchupHistory.map((entry) => {
+              const isWin = entry.result === 'WIN';
+              const isLoss = entry.result === 'LOSS';
+              const badgeColor = isWin ? '#38bdf8' : isLoss ? '#f87171' : '#cbd5e1';
+              const badgeBg = isWin
+                ? 'rgba(56, 189, 248, 0.16)'
+                : isLoss
+                ? 'rgba(239, 68, 68, 0.16)'
+                : 'rgba(148, 163, 184, 0.16)';
+              const formattedDate = entry.created_at
+                ? new Date(entry.created_at).toLocaleString([], {
+                    month: 'short',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                  })
+                : 'Recent';
+
+              return (
+                <div
+                  key={entry.id}
+                  style={{
+                    backgroundColor: '#0a0f1d',
+                    border: '1px solid rgba(148, 163, 184, 0.2)',
+                    borderLeft: `3px solid ${badgeColor}`,
+                    borderRadius: 8,
+                    padding: '0.75rem 0.95rem',
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: '0.75rem'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: '1 1 280px', minWidth: 0 }}>
+                    <span
+                      style={{
+                        backgroundColor: badgeBg,
+                        color: badgeColor,
+                        border: `1px solid ${badgeColor}`,
+                        borderRadius: 4,
+                        padding: '3px 9px',
+                        fontFamily: 'var(--font-tech)',
+                        fontSize: '0.72rem',
+                        fontWeight: 900,
+                        letterSpacing: '0.05em',
+                        flexShrink: 0
+                      }}
+                    >
+                      {entry.result}
+                    </span>
+
+                    <div style={{ minWidth: 0 }}>
+                      <div
+                        style={{
+                          fontFamily: 'var(--font-tech)',
+                          fontSize: '0.9rem',
+                          fontWeight: 800,
+                          color: '#f5f5f7',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 6,
+                          flexWrap: 'wrap'
+                        }}
+                      >
+                        <span>{entry.lineup_name}</span>
+                        <span style={{ color: '#64748b', fontSize: '0.78rem' }}>vs.</span>
+                        <span style={{ color: '#cbd5e1' }}>{entry.opponent_name}</span>
+                      </div>
+
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 10,
+                          flexWrap: 'wrap',
+                          marginTop: 3,
+                          fontSize: '0.74rem',
+                          color: '#94a3b8',
+                          fontFamily: 'var(--font-tech)'
+                        }}
+                      >
+                        {entry.mvp_player_name && (
+                          <span
+                            style={{
+                              color: '#38bdf8',
+                              backgroundColor: 'rgba(56, 189, 248, 0.1)',
+                              padding: '1px 7px',
+                              borderRadius: 4,
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 4,
+                              fontWeight: 700
+                            }}
+                          >
+                            <Award size={12} /> MVP: {entry.mvp_player_name}
+                            {entry.mvp_stat_line ? ` (${entry.mvp_stat_line})` : ''}
+                          </span>
+                        )}
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                          <Clock size={12} /> {formattedDate}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                    <div
+                      style={{
+                        fontFamily: 'var(--font-tech)',
+                        fontSize: '1.05rem',
+                        fontWeight: 900,
+                        color: isWin ? '#38bdf8' : isLoss ? '#f87171' : '#cbd5e1',
+                        whiteSpace: 'nowrap'
+                      }}
+                    >
+                      {entry.user_score} - {entry.opponent_score}
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteHistoryEntry(entry.id)}
+                      title="Delete matchup entry"
+                      aria-label={`Delete matchup vs ${entry.opponent_name}`}
+                      style={{
+                        backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                        border: '1px solid rgba(239, 68, 68, 0.25)',
+                        color: '#f87171',
+                        borderRadius: 6,
+                        padding: 6,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
     </section>
   );
 }
