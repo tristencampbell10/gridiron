@@ -17,11 +17,24 @@ import {
   Calendar
 } from 'lucide-react';
 import espnData from '../data/espnMasterData.json';
+import { fetchLiveEspnData } from '../services/espnService';
 
 export default function Navbar({ user, onOpenAuth, onSignOut, theme, onToggleTheme }) {
   const location = useLocation();
   const [selectedTickerGame, setSelectedTickerGame] = useState(null);
   const [tickerGames, setTickerGames] = useState(espnData.tickerGames || []);
+
+  useEffect(() => {
+    let mounted = true;
+    fetchLiveEspnData().then((live) => {
+      if (mounted && live?.tickerGames?.length > 0) {
+        setTickerGames(live.tickerGames);
+      }
+    }).catch(() => {});
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const isPlayerDetailActive = location.pathname.startsWith('/players/') && location.pathname !== '/players';
 

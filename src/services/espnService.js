@@ -49,13 +49,19 @@ export async function fetchLiveEspnData() {
               id: e.id,
               name: e.name,
               shortName: e.shortName,
+              date: e.date,
+              state: e.status?.type?.state || 'pre',
               status: isLive ? 'LIVE' : (isFinal ? 'FINAL' : 'SCHEDULED'),
               statusType: isLive ? 'live' : (isFinal ? 'final' : 'scheduled'),
               detail: detail,
               clock: isFinal ? 'FINAL' : (isLive ? `${e.status?.displayClock} Q${e.status?.period}` : detail),
               away: away.team?.abbreviation || 'AWAY',
+              awayName: away.team?.displayName || away.team?.abbreviation || 'Away Team',
+              awayRecord: away.records?.[0]?.summary || '0-0',
               awayScore: away.score !== undefined ? away.score : '-',
               home: home.team?.abbreviation || 'HOME',
+              homeName: home.team?.displayName || home.team?.abbreviation || 'Home Team',
+              homeRecord: home.records?.[0]?.summary || '0-0',
               homeScore: home.score !== undefined ? home.score : '-',
               network: comp.broadcasts?.[0]?.names?.[0] || 'ESPN',
               passLeader: passLead ? `${passLead.athlete?.displayName}: ${passLead.displayValue}` : null,
@@ -65,6 +71,48 @@ export async function fetchLiveEspnData() {
           });
           if (parsed.length > 0) {
             tickerGames = parsed;
+
+            // Dynamically select the next live or upcoming game in chronological order
+            const upcomingEvent = [...parsed]
+              .filter((g) => g.state === 'in' || g.state === 'pre')
+              .sort((a, b) => new Date(a.date || 0) - new Date(b.date || 0))[0];
+
+            const latestFinal = [...parsed]
+              .filter((g) => g.state === 'post')
+              .sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0))[0];
+
+            if (upcomingEvent) {
+              const dt = upcomingEvent.date ? new Date(upcomingEvent.date) : null;
+              const eventDate = dt
+                ? dt.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' })
+                : 'Upcoming';
+              const eventTime = upcomingEvent.state === 'in'
+                ? `LIVE • ${upcomingEvent.clock}`
+                : dt
+                ? dt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+                : upcomingEvent.detail;
+
+              nextUpcomingGame = {
+                awayTeam: upcomingEvent.awayName,
+                awayAbbr: upcomingEvent.away,
+                awayRecord: upcomingEvent.awayRecord,
+                homeTeam: upcomingEvent.homeName,
+                homeAbbr: upcomingEvent.home,
+                homeRecord: upcomingEvent.homeRecord,
+                eventDate,
+                eventTime,
+                network: upcomingEvent.network,
+                gameLabel: upcomingEvent.state === 'in' ? 'LIVE NOW' : 'WEEK 10 • NEXT UPCOMING GAME',
+                matchupTitle: `${upcomingEvent.away} @ ${upcomingEvent.home} • ${upcomingEvent.network}`,
+                highlight: [upcomingEvent.passLeader, upcomingEvent.rushLeader, upcomingEvent.recLeader]
+                  .filter(Boolean)
+                  .join(' • ') || `${upcomingEvent.awayName} visits ${upcomingEvent.homeName}`,
+                ctaLabel: `Compare ${upcomingEvent.away} vs ${upcomingEvent.home} Leaders →`,
+                lastFinalSummary: latestFinal
+                  ? `Recent Final: ${latestFinal.away} ${latestFinal.awayScore}, ${latestFinal.home} ${latestFinal.homeScore}`
+                  : null
+              };
+            }
           }
         }
       }

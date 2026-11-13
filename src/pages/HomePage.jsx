@@ -407,7 +407,7 @@ export default function HomePage({ onOpenAuth, user }) {
               textAlign: 'center'
             }}>
               <div style={{ fontSize: '0.75rem', color: 'var(--headline-gold)', fontFamily: 'var(--font-tech)', fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 }}>
-                {nextGame.network} • THURSDAY NIGHT FOOTBALL
+                {nextGame.network} • {nextGame.gameLabel || 'WEEK 10 SPOTLIGHT'}
               </div>
 
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16, margin: '0.75rem 0' }}>
@@ -425,6 +425,11 @@ export default function HomePage({ onOpenAuth, user }) {
               <div style={{ fontSize: '0.85rem', color: 'var(--text-primary)', fontWeight: 600 }}>
                 {nextGame.eventDate} • {nextGame.eventTime}
               </div>
+              {nextGame.lastFinalSummary && (
+                <div style={{ fontSize: '0.74rem', color: '#4ade80', fontFamily: 'var(--font-tech)', fontWeight: 700, marginTop: 6 }}>
+                  {nextGame.lastFinalSummary}
+                </div>
+              )}
             </div>
 
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', lineHeight: 1.5, marginBottom: '1rem' }}>
@@ -448,7 +453,7 @@ export default function HomePage({ onOpenAuth, user }) {
               display: 'block'
             }}
           >
-            Compare Daniels vs Giants Defense &rarr;
+            {nextGame.ctaLabel || `Compare ${nextGame.awayAbbr} vs ${nextGame.homeAbbr} Leaders →`}
           </Link>
         </div>
       </div>
