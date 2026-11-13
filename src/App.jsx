@@ -10,6 +10,7 @@ import Directory from './pages/Directory';
 import Profile from './pages/Profile';
 import Compare from './pages/Compare';
 import Lineups from './pages/Lineups';
+import DraftRoom from './pages/DraftRoom';
 
 /**
  * AppContent Component
@@ -68,6 +69,9 @@ function AppContent() {
           
           {/* View 5: Roster / Lineup Builder & Exporter */}
           <Route path="/lineups" element={<Lineups user={user} onOpenAuth={openAuthModal} />} />
+
+          {/* View 6: Live Timed Snake Draft Room */}
+          <Route path="/draft" element={<DraftRoom />} />
           
           {/* Universal Fallback to Dashboard */}
           <Route path="*" element={<Dashboard onOpenAuth={openAuthModal} user={user} />} />

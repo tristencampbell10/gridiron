@@ -1,5 +1,7 @@
 // 2026 NFL Defensive Players, Kickers, and DST Units
 // For 4-3 Defense formation and Fantasy Superflex rosters
+import { EXPANDED_DEFENSE_AND_ST } from './expandedDraftPool';
+
 export const NFL_DEFENSIVE_PLAYERS = [
   // Defensive Ends / Edge
   {
@@ -587,5 +589,6 @@ export const NFL_DEFENSIVE_PLAYERS = [
     pointsAllowedPerGame: 18.0,
     fantasyPts: 81.0,
     bio: "Disciplined zone coverage unit with All-Pro talent at every level."
-  }
+  },
+  ...EXPANDED_DEFENSE_AND_ST
 ];

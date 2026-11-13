@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { 
   Shield, 
   Layers, 
@@ -25,12 +26,13 @@ import {
 import { supabase, isSupabaseConfigured } from '../supabaseClient';
 import { ALL_32_TEAMS_PLAYERS } from '../data/all32TeamsRoster';
 import { NFL_DEFENSIVE_PLAYERS } from '../data/defensivePlayers';
+import { EXPANDED_OFFENSE_DEPTH } from '../data/expandedDraftPool';
 import { CURRENT_SEASON_INFO } from '../data/nfl2026Data';
 import MatchupSimulator from '../components/MatchupSimulator';
 import TacticalFieldDiagram from '../components/TacticalFieldDiagram';
 
-// All players pooled
-const ALL_PLAYERS_POOL = [...ALL_32_TEAMS_PLAYERS, ...NFL_DEFENSIVE_PLAYERS];
+// All players pooled (deduplicated)
+const ALL_PLAYERS_POOL = [...ALL_32_TEAMS_PLAYERS, ...NFL_DEFENSIVE_PLAYERS, ...EXPANDED_OFFENSE_DEPTH];
 
 import { exportLineupToCSV, sanitizeCsvField, sanitizeCsvCell, formatCsvRow } from '../utils/csvExporter';
 export { sanitizeCsvCell, formatCsvRow };
@@ -166,6 +168,8 @@ const generateLineupUuid = () => {
 };
 
 export default function Lineups({ user, onOpenAuth }) {
+  const location = useLocation();
+  const navigate = useNavigate();
   const [allPlayers, setAllPlayers] = useState(ALL_PLAYERS_POOL);
   const [selectedPresetKey, setSelectedPresetKey] = useState('Offensive Spread 11');
   const [lineupSlots, setLineupSlots] = useState(() => getInitialPresetLineup('Offensive Spread 11'));
@@ -185,6 +189,54 @@ export default function Lineups({ user, onOpenAuth }) {
   const [pickerSearch, setPickerSearch] = useState('');
 
   const currentPreset = FORMATION_PRESETS[selectedPresetKey];
+
+  // Hydrate incoming drafted lineup from DraftRoom (via navigation state or sessionStorage)
+  useEffect(() => {
+    let incoming = location.state?.draftedLineup || null;
+    if (!incoming) {
+      try {
+        const raw = sessionStorage.getItem('gridiron_pending_drafted_lineup');
+        if (raw) {
+          incoming = JSON.parse(raw);
+        }
+      } catch {
+        incoming = null;
+      }
+    }
+
+    if (incoming && Array.isArray(incoming.slots) && incoming.slots.length > 0) {
+      const targetFormation = FORMATION_PRESETS[incoming.formation]
+        ? incoming.formation
+        : 'Offensive Spread 11';
+      const targetRules = FORMATION_PRESETS[targetFormation].slots;
+
+      const normalizedSlots = targetRules.map((rule, idx) => {
+        const incomingSlot = incoming.slots[idx];
+        return {
+          slotId: rule.id,
+          slotName: rule.name,
+          player: incomingSlot?.player || null
+        };
+      });
+
+      setSelectedPresetKey(targetFormation);
+      setLineupSlots(normalizedSlots);
+      setLineupName(incoming.name || 'Drafted Roster 2026');
+      setLineupId(incoming.id || generateLineupUuid());
+      setPersonalRating(Number(incoming.personal_rating) || 5);
+      setIsFinalized(false);
+      setSaveStatus('saved');
+
+      try {
+        sessionStorage.removeItem('gridiron_pending_drafted_lineup');
+      } catch {
+        // ignore storage errors
+      }
+      if (location.state?.draftedLineup) {
+        navigate(location.pathname, { replace: true, state: null });
+      }
+    }
+  }, [location.state, location.pathname, navigate]);
 
   // Fetch 2026 active players from Supabase when configured, merged with local defensive/K/DST pool
   useEffect(() => {

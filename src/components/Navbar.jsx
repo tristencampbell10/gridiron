@@ -14,7 +14,8 @@ import {
   Clock, 
   CheckCircle2, 
   Activity,
-  Calendar
+  Calendar,
+  Trophy
 } from 'lucide-react';
 import espnData from '../data/espnMasterData.json';
 import { fetchLiveEspnData } from '../services/espnService';
@@ -169,6 +170,14 @@ export default function Navbar({ user, onOpenAuth, onSignOut, theme, onToggleThe
               <Layers size={16} />
               <span>Lineup Builder</span>
             </NavLink>
+
+            <NavLink
+              to="/draft"
+              className={({ isActive }) => `nav-link-item ${isActive ? 'active' : ''}`}
+            >
+              <Trophy size={16} />
+              <span>Draft Room</span>
+            </NavLink>
           </div>
 
           {/* Right Action Buttons */}
@@ -263,6 +272,14 @@ export default function Navbar({ user, onOpenAuth, onSignOut, theme, onToggleThe
         >
           <Layers size={20} />
           <span>Lineups</span>
+        </NavLink>
+
+        <NavLink
+          to="/draft"
+          className={({ isActive }) => `mobile-nav-link ${isActive ? 'active' : ''}`}
+        >
+          <Trophy size={20} />
+          <span>Draft</span>
         </NavLink>
 
         {user ? (
