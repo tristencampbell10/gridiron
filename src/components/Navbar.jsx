@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink, Link, useLocation } from 'react-router-dom';
 import { 
-  Flame, 
   Users, 
   UserCheck, 
   BarChart3, 
@@ -117,12 +116,31 @@ export default function Navbar({ user, onOpenAuth, onSignOut, theme, onToggleThe
         <div className="top-navbar-inner">
           {/* Brand */}
           <Link to="/" className="navbar-brand">
-            <div className="brand-icon-wrap" aria-hidden="true">
-              <Flame size={22} className="text-white fill-white" />
+            <div className="brand-mark" aria-hidden="true">
+              <svg viewBox="0 0 48 48" role="presentation">
+                <defs>
+                  <linearGradient id="brand-shield-gradient" x1="7" y1="4" x2="40" y2="44" gradientUnits="userSpaceOnUse">
+                    <stop stopColor="#7dd3fc" />
+                    <stop offset="1" stopColor="#0284c7" />
+                  </linearGradient>
+                </defs>
+                <path
+                  className="brand-shield"
+                  d="M24 2.5 43 9.2v13.5c0 11.2-7.3 18.8-19 22.8C12.3 41.5 5 33.9 5 22.7V9.2L24 2.5Z"
+                />
+                <path className="brand-field-line" d="M12 14h8M11 19h6M10.5 24h4.5M11 29h6M12 34h8" />
+                <g className="brand-football" transform="rotate(38 27 24)">
+                  <path d="M27 12c5.3 0 9.5 5.4 9.5 12S32.3 36 27 36s-9.5-5.4-9.5-12S21.7 12 27 12Z" />
+                  <path className="brand-football-seam" d="M27 14v20M23.5 20h7M23.5 24h7M23.5 28h7" />
+                </g>
+                <path className="brand-shield-highlight" d="m24 5.5 15.5 5.4v2.8L24 8.4 8.5 13.7v-2.8L24 5.5Z" />
+              </svg>
             </div>
-            <div className="brand-name">
-              GRIDIRON<span className="hub">HUB</span>
-              <span className="live-indicator">ESPN LIVE</span>
+            <div className="brand-lockup">
+              <div className="brand-name">
+                <span>GRIDIRON</span><span className="hub">HUB</span>
+              </div>
+              <span className="brand-tagline">FIELD INTELLIGENCE</span>
             </div>
           </Link>
 
