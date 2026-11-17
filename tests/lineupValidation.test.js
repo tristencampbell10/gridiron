@@ -13,6 +13,7 @@ import assert from 'node:assert/strict';
 import { sanitizeCsvField, formatCsvRow, exportLineupToCSV } from '../src/utils/csvExporter.js';
 import { FORMATION_PRESETS } from '../src/pages/Lineups.jsx';
 import { NFL_ALL_PLAYERS_2026, NFL_DST_2026 } from '../src/data/nfl2026Data.js';
+import { ESPN_HEADSHOT_IDS } from '../src/data/espnHeadshotIds.js';
 
 let testsPassed = 0;
 let testsFailed = 0;
@@ -40,6 +41,12 @@ runTest('Players roster includes 32 clickable DST units with defensive stats', (
     team.id && team.teamAbbr && Number.isFinite(team.sacks) &&
     Number.isFinite(team.turnovers) && Number.isFinite(team.pointsAllowedPerGame)
   ));
+});
+
+runTest('Headshots identify the correct receivers and include Adam Thielen', () => {
+  assert.equal(ESPN_HEADSHOT_IDS['justin-jefferson'], '4262921');
+  assert.equal(ESPN_HEADSHOT_IDS['devonta-smith'], '4241478');
+  assert.equal(ESPN_HEADSHOT_IDS['adam-thielen'], '16460');
 });
 
 // -----------------------------------------------------------

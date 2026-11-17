@@ -1,0 +1,1 @@
+- [Player image matching](player-image-matching.md) — ESPN names are not unique; verify team and position before selecting a headshot.
