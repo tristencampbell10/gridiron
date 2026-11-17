@@ -2,6 +2,59 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Search, Filter, ArrowUpDown, ChevronRight, Star, Calendar, Shield, Award } from 'lucide-react';
 import { NFL_ALL_PLAYERS_2026, CURRENT_SEASON_INFO } from '../data/nfl2026Data';
+import { ESPN_HEADSHOT_IDS } from '../data/espnHeadshotIds';
+
+function PlayerHeadshot({ player }) {
+  const [hasError, setHasError] = useState(false);
+  const espnId = ESPN_HEADSHOT_IDS[player.id];
+  const imageUrl = player.avatar_url || (espnId
+    ? `https://a.espncdn.com/i/headshots/nfl/players/full/${espnId}.png`
+    : null);
+  const initials = player.name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join('')
+    .toUpperCase();
+
+  const frameStyle = {
+    width: 64,
+    height: 64,
+    flex: '0 0 64px',
+    display: 'grid',
+    placeItems: 'center',
+    overflow: 'hidden',
+    borderRadius: 10,
+    border: '1px solid var(--card-border)',
+    background: 'linear-gradient(145deg, rgba(56, 189, 248, 0.18), var(--studio-charcoal))',
+    color: 'var(--text-primary)',
+    fontFamily: 'var(--font-tech)',
+    fontSize: '1.1rem',
+    fontWeight: 800
+  };
+
+  if (!imageUrl || hasError) {
+    return (
+      <div style={frameStyle} role="img" aria-label={`${player.name} headshot unavailable`}>
+        {player.pos === 'DST' ? <Shield size={24} /> : initials}
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={imageUrl}
+      alt={`${player.name} headshot`}
+      width="64"
+      height="64"
+      loading="lazy"
+      decoding="async"
+      onError={() => setHasError(true)}
+      style={{ ...frameStyle, objectFit: 'cover', objectPosition: 'center top' }}
+    />
+  );
+}
 
 export default function PlayersPage() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -254,13 +307,18 @@ export default function PlayersPage() {
                   </div>
                 </div>
 
-                {/* Name & Subtitle */}
-                <h3 style={{ fontSize: '1.3rem', fontWeight: 700, marginBottom: '0.2rem' }}>
-                  {player.name}
-                </h3>
-                <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '0.85rem' }}>
-                  {player.team} • {player.gamesPlayed} GP in 2026
-                </p>
+                {/* Headshot, Name & Subtitle */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', marginBottom: '0.85rem' }}>
+                  <PlayerHeadshot player={player} />
+                  <div style={{ minWidth: 0 }}>
+                    <h3 style={{ fontSize: '1.3rem', fontWeight: 700, marginBottom: '0.2rem' }}>
+                      {player.name}
+                    </h3>
+                    <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+                      {player.team} • {player.gamesPlayed} GP in 2026
+                    </p>
+                  </div>
+                </div>
 
                 {/* 2026 Stats Box */}
                 <div style={{ 
