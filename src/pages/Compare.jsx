@@ -17,6 +17,7 @@ import { supabase, isSupabaseConfigured } from '../supabaseClient';
 import { ALL_32_TEAMS_PLAYERS } from '../data/all32TeamsRoster';
 import { NFL_DEFENSIVE_PLAYERS } from '../data/defensivePlayers';
 import { CURRENT_SEASON_INFO } from '../data/nfl2026Data';
+import { ESPN_HEADSHOT_IDS } from '../data/espnHeadshotIds';
 
 // Combine offensive and defensive pools
 const ALL_AVAILABLE_PLAYERS = [...ALL_32_TEAMS_PLAYERS, ...NFL_DEFENSIVE_PLAYERS];
@@ -25,6 +26,14 @@ const ALL_AVAILABLE_PLAYERS = [...ALL_32_TEAMS_PLAYERS, ...NFL_DEFENSIVE_PLAYERS
 export const getPlayerAvatarUrl = (player, fallbackColor = '38bdf8') => {
   if (player?.avatar_url && typeof player.avatar_url === 'string' && player.avatar_url.trim() !== '') {
     return player.avatar_url;
+  }
+  const localPlayer = ALL_AVAILABLE_PLAYERS.find(
+    candidate => candidate.id === player?.id ||
+      candidate.name.toLowerCase() === player?.name?.toLowerCase()
+  );
+  const espnId = ESPN_HEADSHOT_IDS[player?.id] || ESPN_HEADSHOT_IDS[localPlayer?.id];
+  if (espnId) {
+    return `https://a.espncdn.com/i/headshots/nfl/players/full/${espnId}.png`;
   }
   const cleanName = encodeURIComponent(player?.name || 'NFL Player');
   return `https://ui-avatars.com/api/?name=${cleanName}&background=1e1e1e&color=${fallbackColor}&bold=true&size=128`;

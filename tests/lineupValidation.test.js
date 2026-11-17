@@ -14,6 +14,7 @@ import { sanitizeCsvField, formatCsvRow, exportLineupToCSV } from '../src/utils/
 import { FORMATION_PRESETS } from '../src/pages/Lineups.jsx';
 import { NFL_ALL_PLAYERS_2026, NFL_DST_2026 } from '../src/data/nfl2026Data.js';
 import { ESPN_HEADSHOT_IDS } from '../src/data/espnHeadshotIds.js';
+import { getPlayerAvatarUrl } from '../src/pages/Compare.jsx';
 
 let testsPassed = 0;
 let testsFailed = 0;
@@ -47,6 +48,14 @@ runTest('Headshots identify the correct receivers and include Adam Thielen', () 
   assert.equal(ESPN_HEADSHOT_IDS['justin-jefferson'], '4262921');
   assert.equal(ESPN_HEADSHOT_IDS['devonta-smith'], '4241478');
   assert.equal(ESPN_HEADSHOT_IDS['adam-thielen'], '16460');
+});
+
+runTest('Compare resolves roster headshots for both local and database player IDs', () => {
+  assert.ok(getPlayerAvatarUrl({ id: 'lamar-jackson' }).endsWith('/3916387.png'));
+  assert.ok(getPlayerAvatarUrl({ id: 'josh-allen' }).endsWith('/3918298.png'));
+  assert.ok(getPlayerAvatarUrl({ id: 'database-id', name: 'Justin Jefferson' }).endsWith('/4262921.png'));
+  assert.ok(getPlayerAvatarUrl({ id: 'adam-thielen' }).endsWith('/16460.png'));
+  assert.ok(getPlayerAvatarUrl({ name: 'Unknown Player' }).startsWith('https://ui-avatars.com/'));
 });
 
 // -----------------------------------------------------------
