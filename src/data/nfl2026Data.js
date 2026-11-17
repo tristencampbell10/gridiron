@@ -3,6 +3,7 @@
 // Synchronized with public.players and public.player_season_stats
 import { ALL_32_TEAMS_PLAYERS } from './all32TeamsRoster';
 import espnMaster from './espnMasterData.json';
+import { NFL_DEFENSIVE_PLAYERS } from './defensivePlayers';
 
 export const CURRENT_SEASON_INFO = {
   year: 2026,
@@ -16,5 +17,7 @@ export const CURRENT_SEASON_INFO = {
 export const TICKER_GAMES_2026 = espnMaster.tickerGames;
 
 export const NFL_PLAYERS_2026 = ALL_32_TEAMS_PLAYERS;
+export const NFL_DST_2026 = NFL_DEFENSIVE_PLAYERS.filter(player => player.pos === 'DST');
+export const NFL_ALL_PLAYERS_2026 = [...NFL_PLAYERS_2026, ...NFL_DST_2026];
 
 export const HEADLINES_2026 = espnMaster.breakingNews;

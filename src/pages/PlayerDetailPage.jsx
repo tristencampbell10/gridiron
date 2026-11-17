@@ -1,11 +1,11 @@
 import React from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { ArrowLeft, Award, Activity, Zap, TrendingUp, Shield, BarChart3, Calendar, CheckCircle2 } from 'lucide-react';
-import { NFL_PLAYERS_2026, CURRENT_SEASON_INFO } from '../data/nfl2026Data';
+import { NFL_ALL_PLAYERS_2026, CURRENT_SEASON_INFO } from '../data/nfl2026Data';
 
 export default function PlayerDetailPage() {
   const { id } = useParams();
-  const player = NFL_PLAYERS_2026.find(p => p.id === id) || NFL_PLAYERS_2026[0];
+  const player = NFL_ALL_PLAYERS_2026.find(p => p.id === id) || NFL_ALL_PLAYERS_2026[0];
 
   return (
     <div style={{ maxWidth: 1200, margin: '0 auto', padding: '1.5rem 1.25rem' }}>
@@ -149,12 +149,37 @@ export default function PlayerDetailPage() {
               </div>
             </>
           )}
+
+          {player.pos === 'DST' && (
+            <>
+              <div style={{ background: 'var(--studio-charcoal)', padding: '0.75rem', borderRadius: 6, textAlign: 'center' }}>
+                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontFamily: 'var(--font-tech)' }}>SACKS</div>
+                <div style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'var(--font-tech)' }}>{player.sacks ?? '—'}</div>
+              </div>
+              <div style={{ background: 'var(--studio-charcoal)', padding: '0.75rem', borderRadius: 6, textAlign: 'center' }}>
+                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontFamily: 'var(--font-tech)' }}>TURNOVERS</div>
+                <div style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--headline-gold)', fontFamily: 'var(--font-tech)' }}>{player.turnovers ?? '—'}</div>
+              </div>
+              <div style={{ background: 'var(--studio-charcoal)', padding: '0.75rem', borderRadius: 6, textAlign: 'center' }}>
+                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontFamily: 'var(--font-tech)' }}>DEFENSIVE TDS</div>
+                <div style={{ fontSize: '1.25rem', fontWeight: 700, color: '#4ade80', fontFamily: 'var(--font-tech)' }}>{player.defensiveTd ?? '—'}</div>
+              </div>
+              <div style={{ background: 'var(--studio-charcoal)', padding: '0.75rem', borderRadius: 6, textAlign: 'center' }}>
+                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontFamily: 'var(--font-tech)' }}>POINTS ALLOWED / GAME</div>
+                <div style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'var(--font-tech)' }}>{player.pointsAllowedPerGame ?? '—'}</div>
+              </div>
+            </>
+          )}
         </div>
 
         <div style={{ marginTop: '1.25rem', padding: '0.75rem 1rem', background: 'rgba(56, 189, 248, 0.08)', border: '1px solid rgba(56, 189, 248, 0.25)', borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <Calendar size={16} style={{ color: 'var(--headline-gold)' }} />
-            <span style={{ fontSize: '0.85rem' }}>Upcoming Matchup: <strong>{player.nextGame}</strong></span>
+            <span style={{ fontSize: '0.85rem' }}>
+              {player.pos === 'DST'
+                ? <><strong>Team defense</strong> • {player.gamesPlayed} games in the 2026 season</>
+                : <>Upcoming Matchup: <strong>{player.nextGame}</strong></>}
+            </span>
           </div>
           <Link to="/compare" style={{ color: 'var(--headline-gold)', fontSize: '0.825rem', fontWeight: 700, textDecoration: 'none' }}>
             Compare {player.name} &rarr;
@@ -163,6 +188,16 @@ export default function PlayerDetailPage() {
       </div>
 
       {/* 2026 Game-by-Game Log */}
+      {player.pos === 'DST' ? (
+        <div style={{ backgroundColor: 'var(--card-slate)', border: '1px solid var(--card-border)', borderRadius: 12, padding: '1.5rem' }}>
+          <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.5rem', textTransform: 'uppercase', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Shield size={20} style={{ color: 'var(--espn-red)' }} /> 2026 Defense & Special Teams Snapshot
+          </h2>
+          <p style={{ color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+            Team-level season totals are shown above. Game-by-game DST logs are not included in the current roster data.
+          </p>
+        </div>
+      ) : (
       <div style={{ backgroundColor: 'var(--card-slate)', border: '1px solid var(--card-border)', borderRadius: 12, padding: '1.5rem' }}>
         <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.5rem', textTransform: 'uppercase', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: 8 }}>
           <Activity size={20} style={{ color: 'var(--espn-red)' }} /> {CURRENT_SEASON_INFO.year} Season Game-by-Game Performance Log
@@ -203,6 +238,7 @@ export default function PlayerDetailPage() {
           </table>
         </div>
       </div>
+      )}
     </div>
   );
 }

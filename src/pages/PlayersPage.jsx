@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Search, Filter, ArrowUpDown, ChevronRight, Star, Calendar, Shield, Award } from 'lucide-react';
-import { NFL_PLAYERS_2026, CURRENT_SEASON_INFO } from '../data/nfl2026Data';
+import { NFL_ALL_PLAYERS_2026, CURRENT_SEASON_INFO } from '../data/nfl2026Data';
 
 export default function PlayersPage() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -10,9 +10,9 @@ export default function PlayersPage() {
   const [sortBy, setSortBy] = useState('fpts'); // 'fpts' | 'rating' | 'yards' | 'td' | 'name'
 
   // Extract unique teams for filter dropdown
-  const teamsList = Array.from(new Set(NFL_PLAYERS_2026.map(p => p.teamAbbr))).sort();
+  const teamsList = Array.from(new Set(NFL_ALL_PLAYERS_2026.map(p => p.teamAbbr))).sort();
 
-  const filteredPlayers = NFL_PLAYERS_2026
+  const filteredPlayers = NFL_ALL_PLAYERS_2026
     .filter((p) => {
       const term = searchTerm.toLowerCase();
       const matchesSearch = 
@@ -34,10 +34,12 @@ export default function PlayersPage() {
         return yB - yA;
       }
       if (sortBy === 'td') {
-        const tdA = (a.passTd || 0) + (a.rushTd || 0) + (a.recTd || 0);
-        const tdB = (b.passTd || 0) + (b.rushTd || 0) + (b.recTd || 0);
+        const tdA = (a.passTd || 0) + (a.rushTd || 0) + (a.recTd || 0) + (a.defensiveTd || 0);
+        const tdB = (b.passTd || 0) + (b.rushTd || 0) + (b.recTd || 0) + (b.defensiveTd || 0);
         return tdB - tdA;
       }
+      if (sortBy === 'sacks') return (b.sacks || 0) - (a.sacks || 0);
+      if (sortBy === 'turnovers') return (b.turnovers || 0) - (a.turnovers || 0);
       return a.name.localeCompare(b.name);
     });
 
@@ -70,7 +72,7 @@ export default function PlayersPage() {
         }}>
           <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Showing:</span>
           <span style={{ color: 'var(--headline-gold)', fontWeight: 700, fontSize: '1rem' }}>
-            {filteredPlayers.length} of {NFL_PLAYERS_2026.length} Active Starters
+            {filteredPlayers.length} of {NFL_ALL_PLAYERS_2026.length} Active Players & DST Units
           </span>
         </div>
       </div>
@@ -142,6 +144,8 @@ export default function PlayersPage() {
               <option value="rating">ESPN Grade / QBR</option>
               <option value="yards">Total Scrimmage/Pass YDS</option>
               <option value="td">Total Touchdowns</option>
+              <option value="sacks">Defensive Sacks</option>
+              <option value="turnovers">Defensive Turnovers</option>
               <option value="name">Player Name (A-Z)</option>
             </select>
           </div>
@@ -163,7 +167,44 @@ export default function PlayersPage() {
 
       {/* Players Grid */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(310px, 1fr))', gap: '1.25rem' }}>
-        {filteredPlayers.map((player) => {
+        {filteredPlayers.length === 0 ? (
+          <div style={{
+            gridColumn: '1 / -1',
+            backgroundColor: 'var(--card-slate)',
+            border: '1px solid var(--card-border)',
+            borderRadius: 10,
+            padding: '2.5rem 1.5rem',
+            textAlign: 'center'
+          }} role="status" aria-live="polite">
+            <Shield size={28} style={{ color: 'var(--headline-gold)', marginBottom: 8 }} />
+            <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.5rem', textTransform: 'uppercase' }}>
+              No matching players or defenses
+            </h2>
+            <p style={{ color: 'var(--text-secondary)', margin: '0.35rem 0 1rem' }}>
+              Try a different team or clear your search to see the full roster.
+            </p>
+            <button
+              type="button"
+              onClick={() => {
+                setSearchTerm('');
+                setSelectedTeam('ALL');
+                setSelectedPos('ALL');
+              }}
+              style={{
+                backgroundColor: 'var(--espn-red)',
+                color: '#0a0f1d',
+                border: 0,
+                borderRadius: 6,
+                padding: '0.55rem 0.9rem',
+                fontFamily: 'var(--font-tech)',
+                fontWeight: 700,
+                cursor: 'pointer'
+              }}
+            >
+              Reset filters
+            </button>
+          </div>
+        ) : filteredPlayers.map((player) => {
           const latestLog = player.log2026 && player.log2026.length > 0 ? player.log2026[0] : null;
 
           return (

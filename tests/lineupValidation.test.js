@@ -12,6 +12,7 @@
 import assert from 'node:assert/strict';
 import { sanitizeCsvField, formatCsvRow, exportLineupToCSV } from '../src/utils/csvExporter.js';
 import { FORMATION_PRESETS } from '../src/pages/Lineups.jsx';
+import { NFL_ALL_PLAYERS_2026, NFL_DST_2026 } from '../src/data/nfl2026Data.js';
 
 let testsPassed = 0;
 let testsFailed = 0;
@@ -31,6 +32,15 @@ function runTest(testName, fn) {
 console.log('\n======================================================');
 console.log(' GRIDIRON TEST SUITE: FORMULA SANITIZATION & LINEUPS');
 console.log('======================================================\n');
+
+runTest('Players roster includes 32 clickable DST units with defensive stats', () => {
+  assert.equal(NFL_DST_2026.length, 32);
+  assert.equal(NFL_ALL_PLAYERS_2026.filter((player) => player.pos === 'DST').length, 32);
+  assert.ok(NFL_DST_2026.every((team) =>
+    team.id && team.teamAbbr && Number.isFinite(team.sacks) &&
+    Number.isFinite(team.turnovers) && Number.isFinite(team.pointsAllowedPerGame)
+  ));
+});
 
 // -----------------------------------------------------------
 // SUITE 1: CSV FORMULA INJECTION SANITIZATION AUDIT
