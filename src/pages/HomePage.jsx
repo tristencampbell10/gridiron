@@ -19,6 +19,48 @@ import {
 import { fetchLiveEspnData } from '../services/espnService';
 import espnMasterFallback from '../data/espnMasterData.json';
 
+function TeamLogo({ teamName, abbreviation, src }) {
+  const [hasError, setHasError] = useState(false);
+  const logoUrl = src || `https://a.espncdn.com/i/teamlogos/nfl/500/${abbreviation.toLowerCase()}.png`;
+
+  if (hasError) {
+    return (
+      <div
+        aria-label={`${teamName} logo unavailable`}
+        style={{
+          width: 54,
+          height: 54,
+          display: 'grid',
+          placeItems: 'center',
+          borderRadius: 12,
+          border: '1px solid var(--card-border)',
+          color: 'var(--text-primary)',
+          fontFamily: 'var(--font-tech)',
+          fontWeight: 800
+        }}
+      >
+        {abbreviation}
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={logoUrl}
+      alt={`${teamName} logo`}
+      width="54"
+      height="54"
+      onError={() => setHasError(true)}
+      style={{
+        width: 54,
+        height: 54,
+        objectFit: 'contain',
+        filter: 'drop-shadow(0 3px 8px rgba(0, 0, 0, 0.35))'
+      }}
+    />
+  );
+}
+
 export default function HomePage({ onOpenAuth, user }) {
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState(espnMasterFallback);
@@ -410,13 +452,15 @@ export default function HomePage({ onOpenAuth, user }) {
                 {nextGame.network} • {nextGame.gameLabel || 'WEEK 10 SPOTLIGHT'}
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16, margin: '0.75rem 0' }}>
-                <div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 18, margin: '0.75rem 0' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: 76 }}>
+                  <TeamLogo teamName={nextGame.awayTeam} abbreviation={nextGame.awayAbbr} src={nextGame.awayLogo} />
                   <div style={{ fontFamily: 'var(--font-display)', fontSize: '2rem', fontWeight: 700 }}>{nextGame.awayAbbr}</div>
                   <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{nextGame.awayRecord}</div>
                 </div>
                 <span style={{ fontSize: '1.2rem', color: 'var(--text-muted)', fontWeight: 700 }}>@</span>
-                <div>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: 76 }}>
+                  <TeamLogo teamName={nextGame.homeTeam} abbreviation={nextGame.homeAbbr} src={nextGame.homeLogo} />
                   <div style={{ fontFamily: 'var(--font-display)', fontSize: '2rem', fontWeight: 700 }}>{nextGame.homeAbbr}</div>
                   <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{nextGame.homeRecord}</div>
                 </div>
