@@ -229,9 +229,18 @@ export default function HomePage({ onOpenAuth, user }) {
           </div>
         </div>
 
-        <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(2.4rem, 5vw, 4rem)', lineHeight: 1.05, textTransform: 'uppercase', fontWeight: 700, marginBottom: '0.75rem', color: '#f8fafc' }}>
-          ESPN NFL <span style={{ color: 'var(--headline-gold)' }}>COMMAND CENTER</span>
-        </h1>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'clamp(0.6rem, 2vw, 1rem)', marginBottom: '0.75rem' }}>
+          <img
+            src="https://a.espncdn.com/i/teamlogos/leagues/500/nfl.png"
+            alt="NFL logo"
+            width="64"
+            height="64"
+            style={{ width: 'clamp(44px, 6vw, 64px)', height: 'clamp(44px, 6vw, 64px)', objectFit: 'contain', flexShrink: 0 }}
+          />
+          <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(2.4rem, 5vw, 4rem)', lineHeight: 1.05, textTransform: 'uppercase', fontWeight: 700, color: '#f8fafc' }}>
+            NFL <span style={{ color: 'var(--headline-gold)' }}>COMMAND CENTER</span>
+          </h1>
+        </div>
         
         <p style={{ color: '#cbd5e1', fontSize: '1.05rem', maxWidth: 760, marginBottom: '1.75rem', lineHeight: 1.6 }}>
           Live scores and verified season stats directly from the ESPN API. Next up on the schedule: <strong style={{ color: '#ffffff' }}>{nextGame.matchupTitle}</strong>. Full player performance rankings and weekly matchup analytics.
